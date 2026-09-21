@@ -12,28 +12,34 @@ Neustart automatisch an (kein PIN mehr noetig).
 
 ## Option A - Frische SD-Karte mit dem Raspberry Pi Imager (empfohlen)
 
+Aktuelle Raspberry Pi OS Versionen richten die Ersteinrichtung (Benutzer,
+WLAN, SSH) ueber "cloud-init" ein. Wir haengen unser Installationsskript an
+genau diesen Mechanismus an - ein Bearbeiten von `cmdline.txt` ist **nicht**
+mehr noetig.
+
 1. Lade den [Raspberry Pi Imager](https://www.raspberrypi.com/software/) herunter.
 2. Waehle als Betriebssystem **Raspberry Pi OS Lite (64-bit)**.
-3. Klicke auf das Zahnrad-Symbol ("Erweiterte Optionen" / OS anpassen) und setze dort
-   **einen Benutzernamen und ein Passwort** (aktiviere zusaetzlich gerne SSH). WLAN
-   musst du dort NICHT eintragen, das uebernimmt dieses Paket.
+3. Klicke auf das Zahnrad-Symbol ("Erweiterte Optionen" / OS anpassen) und setze dort:
+   - **Benutzername + Passwort** (z.B. `pi`, beliebig waehlbar)
+   - **WLAN** (SSID **{{SSID}}** und das im CMS eingegebene Passwort) - diesmal
+     direkt hier eintragen, nicht ueber das Paket
+   - SSH aktivieren (empfohlen, erleichtert die Fehlersuche)
    **Wichtig:** Diesen Schritt nicht ueberspringen - Raspberry Pi OS legt seit
-   einigen Jahren keinen Standardbenutzer mehr automatisch an. Ohne einen hier
-   gesetzten Benutzer wuerde der Pi beim ersten Start einen angeschlossenen
-   Monitor/Tastatur verlangen, um interaktiv einen Benutzer anzulegen - die
-   automatische Einrichtung waere dann unterbrochen. Der Benutzername selbst
-   ist frei waehlbar (z.B. `pi`), das Installationsskript erkennt ihn automatisch.
+   einigen Jahren keinen Standardbenutzer mehr automatisch an, und ohne diese
+   Angaben wuerde der Pi einen angeschlossenen Monitor/Tastatur verlangen.
 4. Flashe die SD-Karte.
 5. Nach dem Flashen: SD-Karte am Rechner erneut einlegen. Es erscheint das Boot-Laufwerk
    ("bootfs" bzw. "boot").
 6. Kopiere den kompletten Ordner `cms-provisioning/` aus diesem Paket in das Wurzelverzeichnis
    des Boot-Laufwerks.
-7. Kopiere zusaetzlich `firstrun-append.txt` -> haenge den Inhalt an die Datei `cmdline.txt`
-   auf dem Boot-Laufwerk an (siehe Anleitung in `firstrun-append.txt`).
-8. SD-Karte in den Raspberry Pi stecken und starten. WLAN wird eingerichtet, der Player
-   installiert und der Kiosk-Modus aktiviert - **der Pi startet dabei automatisch 2-3 Mal
-   neu, das ist normal** (die Installation braucht insgesamt ca. 5-10 Minuten, je nach
-   Internetverbindung). Erst danach erscheint die Registrierungs-PIN auf dem Bildschirm.
+7. Oeffne die Datei `userdata-append.txt` aus diesem Paket und folge der Anleitung
+   darin, um die vom Imager bereits erzeugte Datei `user-data` auf dem
+   Boot-Laufwerk um einen zusaetzlichen Startbefehl zu ergaenzen.
+8. SD-Karte in den Raspberry Pi stecken und starten. Der Player wird installiert
+   und der Kiosk-Modus aktiviert, danach startet der Pi automatisch einmal neu
+   (das ist normal) - die Installation braucht insgesamt ca. 5-10 Minuten, je
+   nach Internetverbindung. Erst danach erscheint die Registrierungs-PIN auf
+   dem Bildschirm.
 
 ## Option B - Bestehender, bereits laufender Raspberry Pi
 
@@ -55,9 +61,12 @@ Neustart automatisch an (kein PIN mehr noetig).
 - `wpa_supplicant.conf`, `nm-wifi.conf` - dein hinterlegtes WLAN (fuer beide
   auf Raspberry Pi OS moeglichen Netzwerk-Systeme, `install.sh` erkennt automatisch,
   welches davon verwendet wird)
-- `install.sh` - Installationsskript (Option B). Richtet zuerst WLAN ein und wartet
-  bis zu 7,5 Minuten auf eine echte Internetverbindung, bevor Pakete installiert werden
-- `firstrun.sh` - Installationsskript fuer die automatische Erstinstallation (Option A)
+- `install.sh` - das eigentliche Installationsskript (fuer Option A automatisch
+  per cloud-init, fuer Option B manuell per SSH). Richtet zuerst WLAN ein
+  (falls noch nicht per Imager verbunden) und wartet bis zu 7,5 Minuten auf
+  eine echte Internetverbindung, bevor Pakete installiert werden
+- `userdata-append.txt` - Anleitung, um `install.sh` bei Option A automatisch
+  per cloud-init starten zu lassen
 - `cms-player.service`, `cms-kiosk.service` - systemd-Dienste fuer Autostart
 
 ## Geraet zuruecksetzen / neu registrieren

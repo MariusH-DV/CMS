@@ -1,8 +1,9 @@
 #!/bin/bash
 # CMS Player - Installationsskript fuer Raspberry Pi OS (Lite oder Desktop, Bullseye/Bookworm)
-# Wird entweder manuell auf einem bereits laufenden Pi ausgefuehrt,
-# oder automatisch von cms-firstboot.service beim ersten normalen Boot
-# (nach dem netzwerklosen firstrun.sh-Schritt) aufgerufen.
+# Wird entweder manuell auf einem bereits laufenden Pi ausgefuehrt (Option B),
+# oder automatisch per cloud-init "runcmd" beim ersten Start aufgerufen
+# (Option A, siehe userdata-append.txt) - in beiden Faellen ist zu diesem
+# Zeitpunkt bereits Netzwerk vorhanden.
 set -e
 
 PROVISIONING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,9 +11,10 @@ INSTALL_DIR="/opt/cms-player"
 # Ermittelt den tatsaechlichen Benutzer automatisch, damit die Installation
 # unabhaengig vom in Raspberry Pi Imager gewaehlten Benutzernamen funktioniert:
 # 1. SUDO_USER, falls interaktiv per "sudo bash install.sh" ausgefuehrt
-# 2. sonst der einzige Ordner unter /home (von Raspberry Pi Imager beim
-#    Anlegen des Benutzers erstellt - das ist der Fall beim automatischen
-#    Erststart via cms-firstboot.service, wo es keine sudo-Sitzung gibt)
+# 2. sonst der einzige Ordner unter /home (von cloud-init/Raspberry Pi Imager
+#    beim Anlegen des Benutzers erstellt - das ist der Fall beim
+#    automatischen Erststart via cloud-init "runcmd", wo es keine
+#    sudo-Sitzung gibt)
 # 3. Fallback "pi" nur falls beides fehlschlaegt
 RUN_USER="${SUDO_USER:-$(ls /home 2>/dev/null | head -n1)}"
 RUN_USER="${RUN_USER:-pi}"

@@ -20,28 +20,34 @@ Installationswegen. Kurzfassung:
 
 ### Option A - Frische SD-Karte (empfohlen fuer neue Geraete)
 
+Aktuelle Raspberry Pi OS Versionen richten Benutzer/WLAN/SSH ueber
+**cloud-init** ein. Unser Paket haengt sich an genau diesen Mechanismus an -
+ein Bearbeiten von `cmdline.txt` ist **nicht** noetig (und wird nicht mehr
+empfohlen, siehe Hintergrund unten).
+
 1. [Raspberry Pi Imager](https://www.raspberrypi.com/software/) installieren.
 2. Betriebssystem **Raspberry Pi OS Lite (64-bit)** waehlen. Vor dem Flashen
    auf das Zahnrad-Symbol ("Erweiterte Optionen" / OS anpassen) klicken und
-   dort **einen Benutzernamen und ein Passwort setzen** (Hostname/SSH nach
-   Belieben, WLAN NICHT eintragen - das uebernimmt unser Paket). Das ist ein
-   Muss: Raspberry Pi OS legt seit einigen Jahren keinen Standardbenutzer
-   mehr an - ohne diesen Schritt wuerde der Pi beim ersten Start einen
-   Monitor/Tastatur verlangen, um interaktiv einen Benutzer anzulegen, und
-   die automatische Ersteinrichtung waere unterbrochen. Der gewaehlte
-   Benutzername ist beliebig (z.B. `pi`) - unser Installationsskript
-   erkennt ihn automatisch. Danach flashen.
+   dort setzen:
+   - **Benutzername + Passwort** (beliebig, z.B. `pi`)
+   - **WLAN** (SSID/Passwort - diesmal direkt hier eintragen)
+   - SSH aktivieren (empfohlen fuer die Fehlersuche)
+
+   Das ist ein Muss: Raspberry Pi OS legt seit einigen Jahren keinen
+   Standardbenutzer mehr an - ohne diesen Schritt wuerde der Pi beim ersten
+   Start einen Monitor/Tastatur verlangen, um interaktiv einen Benutzer
+   anzulegen, und die automatische Ersteinrichtung waere unterbrochen.
+   Danach flashen.
 3. SD-Karte erneut einlegen, den Ordner `cms-provisioning/` aus dem
    heruntergeladenen ZIP in das Wurzelverzeichnis des Boot-Laufwerks kopieren.
-4. `cmdline.txt` auf dem Boot-Laufwerk gemaess `firstrun-append.txt` erweitern.
-5. SD-Karte in den Pi stecken, starten. Die Ersteinrichtung (WLAN, Player-
+4. Die vom Imager bereits erzeugte Datei `user-data` auf dem Boot-Laufwerk
+   gemaess der Anleitung in `cms-provisioning/userdata-append.txt` um einen
+   Startbefehl erweitern.
+5. SD-Karte in den Pi stecken, starten. Die Ersteinrichtung (Player-
    Installation, Autostart) laeuft vollautomatisch - es ist kein Monitor,
    keine Tastatur und keine weitere Eingabe am Pi noetig. Dabei startet der
-   Pi **automatisch 2-3 Mal neu** (technisch bedingt: der allererste Boot hat
-   noch kein Netzwerk, danach folgt die eigentliche Installation und ein
-   letzter Neustart, damit der Kiosk sauber startet) - das ist normal und
-   dauert insgesamt ca. 5-10 Minuten. Erst danach erscheint die
-   Registrierungs-PIN.
+   Pi **einmal automatisch neu**, das ist normal und dauert insgesamt ca.
+   5-10 Minuten. Erst danach erscheint die Registrierungs-PIN.
 
 ### Option B - Bereits laufender Raspberry Pi
 
@@ -64,12 +70,24 @@ sudo reboot
 - **Autologin/Autostart**: beide Dienste sind als systemd-Dienste aktiviert
   (`enable`), starten also automatisch bei jedem Boot, ohne dass sich jemand
   am Pi anmelden muss.
-- **WLAN**: sowohl `wpa_supplicant.conf` (aelteres Raspberry Pi OS) als auch
-  `nm-wifi.conf` fuer NetworkManager (Standard seit Bookworm) mit den im CMS
-  eingegebenen Zugangsdaten - `install.sh` erkennt automatisch, welches
-  Netzwerksystem aktiv ist, richtet WLAN als allererstes ein und wartet
-  danach auf eine funktionierende Internetverbindung, bevor irgendetwas
-  installiert wird.
+- **WLAN**: bei Option A idealerweise bereits durch den Raspberry Pi Imager
+  selbst verbunden (siehe oben). `install.sh` bringt zusaetzlich eigene
+  WLAN-Konfiguration mit (`wpa_supplicant.conf` und `nm-wifi.conf`, je
+  nachdem welches Netzwerksystem aktiv ist) und wartet bis zu 7,5 Minuten auf
+  eine funktionierende Internetverbindung, bevor irgendetwas installiert wird
+  - nuetzlich vor allem fuer Option B oder falls WLAN im Imager vergessen wurde.
+
+## Hintergrund: warum cloud-init statt cmdline.txt?
+
+Fruehere Versionen dieser Anleitung nutzten einen `systemd.run=`-Eintrag in
+`cmdline.txt`, um beim allerersten, noch netzwerklosen Boot ein eigenes
+Skript auszufuehren. Aktuelle Raspberry Pi OS Versionen verwenden fuer die
+Ersteinrichtung (Benutzer/WLAN/SSH) bereits **cloud-init** - der alte
+`cmdline.txt`-Mechanismus kann damit kollidieren und zu einem Haenger fuehren
+(Boot-Text erscheint kurz, dann passiert nichts mehr, keine klare
+Fehlermeldung). Deshalb nutzt diese Anleitung jetzt cloud-init selbst
+(`runcmd` in `user-data`), um unser Installationsskript zu starten - das
+laeuft zuverlaessig nach Netzwerkstart, ganz ohne Eingriff in `cmdline.txt`.
 
 ## Registrierungs-PIN & automatische Anmeldung
 
@@ -119,7 +137,7 @@ in aller Regel Option A oder B oben.
 | Kiosk bleibt schwarz | `sudo systemctl status cms-kiosk`; pruefen ob `cms-player` laeuft (Kiosk wartet darauf) |
 | Pi findet CMS nicht | `PUBLIC_API_URL` im Backend pruefen, Netzwerk/WLAN-Verbindung des Pi pruefen |
 | Geraet bleibt "Wartet auf Registrierung" | PIN kann abgelaufen sein (15 Minuten) - Pi neu starten fuer neue PIN |
-| Pi startet kurz, rote LED bleibt an, gruene LED geht nach einigen Sekunden aus, kein Fehlertext sichtbar, Ersteinrichtung passiert nie | Meist ein falscher Pfad in `cmdline.txt`: aktuelle Raspberry Pi OS Versionen (Bookworm+) haengen die Boot-Partition unter `/boot/firmware` ein statt unter `/boot` - `firstrun-append.txt` verwendet seit dieser Version bereits den richtigen Pfad. SD-Karte an einem PC pruefen: existiert dort tatsaechlich `cmdline.txt` im gleichen Ordner wie der kopierte `cms-provisioning`-Ordner (nicht in einem Unterordner)? Zum Test: erst mit einem ganz normalen, unveraenderten Image (ohne `cms-provisioning`, ohne `cmdline.txt`-Aenderung) pruefen, ob der Pi ueberhaupt sauber durchbootet - bootet das, liegt es an `cmdline.txt`/`firstrun.sh`, sonst eher an SD-Karte/Netzteil |
-| Pi startet in einer Dauerschleife immer wieder neu | Meist ein Fehler in `install.sh` (z.B. keine Internetverbindung im WLAN). Monitor anschliessen und die Boot-Meldungen/Fehler direkt beobachten, oder per SSH (falls in Imager aktiviert) einloggen und `journalctl -u cms-firstboot -b` pruefen |
-| Installation haengt nach dem zweiten Neustart, WLAN-LED am Router zeigt keine Verbindung | SSID/Passwort falsch, oder Pi im 5-GHz-Netz waehrend das Modul nur 2,4 GHz unterstuetzt. `install.sh` (ab dieser Version) wartet bis zu 7,5 Minuten auf Internet und versucht es danach automatisch erneut (bis zu 5x pro Stunde) - bei dauerhaft falschem WLAN aber vergeblich. Per Monitor/SSH pruefen: `nmcli connection show` bzw. `wpa_cli status` |
+| `install.sh` scheint nie zu starten, Pi bootet aber sonst normal durch (per Monitor/SSH erreichbar) | `user-data` auf dem Boot-Laufwerk pruefen: enthaelt sie den `runcmd`-Block aus `userdata-append.txt`? YAML ist einrueckungsempfindlich - bei Unsicherheit den Inhalt der Datei genau mit der Anleitung vergleichen. Per SSH pruefen: `sudo cloud-init status --long` und `sudo journalctl -u cloud-final -b` |
+| Installation haengt, WLAN-LED am Router zeigt keine Verbindung | SSID/Passwort falsch, oder Pi im 5-GHz-Netz waehrend das Modul nur 2,4 GHz unterstuetzt. `install.sh` wartet bis zu 7,5 Minuten auf Internet. Per Monitor/SSH pruefen: `nmcli connection show` bzw. `wpa_cli status` |
 | `install.sh` findet kein WLAN, obwohl SSID/Passwort korrekt sind | Pruefen, welches Netzwerksystem aktiv ist: `systemctl is-active NetworkManager`. Ist es aktiv, muss `/etc/NetworkManager/system-connections/cms-wifi.nmconnection` existieren (aus `nm-wifi.conf`); sonst wird `wpa_supplicant.conf` verwendet |
+| Pi bootet ueberhaupt nicht (kein Text, oder haengt schon vor jeglicher Ersteinrichtung) | Erst mit einem ganz normalen, unveraenderten Image testen (nur Benutzer/WLAN/SSH per Imager, ohne `cms-provisioning`-Ordner). Bootet das sauber, liegt es an unserem Paket (siehe obige Eintraege); bootet auch das nicht, eher SD-Karte oder Netzteil pruefen |
