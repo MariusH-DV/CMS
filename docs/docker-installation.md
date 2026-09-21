@@ -204,3 +204,9 @@ Ohne `-v` bleiben die Daten erhalten und stehen beim naechsten
 | Aenderungen an `.env` wirken sich nicht aus | `docker compose up -d` erneut ausfuehren (Container werden neu erstellt) |
 | Raspberry-Pi-Player findet den Server nicht | `PUBLIC_API_URL` in `.env` pruefen - muss vom Pi aus erreichbar sein, nicht `localhost` |
 | Alles neu aufsetzen | `docker compose down -v` und anschliessend wieder Schritt 4 |
+
+## Betrieb hinter Plesk
+
+Laeuft der Server mit **Plesk** und der Docker-Erweiterung, siehe die
+dedizierte Anleitung **[Installation unter Plesk](plesk-installation.md)**
+fuer Domain-Einrichtung, Reverse Proxy und Let's-Encrypt-HTTPS.
