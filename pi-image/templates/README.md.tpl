@@ -30,8 +30,10 @@ Neustart automatisch an (kein PIN mehr noetig).
    des Boot-Laufwerks.
 7. Kopiere zusaetzlich `firstrun-append.txt` -> haenge den Inhalt an die Datei `cmdline.txt`
    auf dem Boot-Laufwerk an (siehe Anleitung in `firstrun-append.txt`).
-8. SD-Karte in den Raspberry Pi stecken und starten. Beim ersten Boot wird automatisch
-   WLAN eingerichtet, der Player installiert und der Kiosk-Modus aktiviert.
+8. SD-Karte in den Raspberry Pi stecken und starten. WLAN wird eingerichtet, der Player
+   installiert und der Kiosk-Modus aktiviert - **der Pi startet dabei automatisch 2-3 Mal
+   neu, das ist normal** (die Installation braucht insgesamt ca. 5-10 Minuten, je nach
+   Internetverbindung). Erst danach erscheint die Registrierungs-PIN auf dem Bildschirm.
 
 ## Option B - Bestehender, bereits laufender Raspberry Pi
 

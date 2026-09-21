@@ -35,8 +35,13 @@ Installationswegen. Kurzfassung:
    heruntergeladenen ZIP in das Wurzelverzeichnis des Boot-Laufwerks kopieren.
 4. `cmdline.txt` auf dem Boot-Laufwerk gemaess `firstrun-append.txt` erweitern.
 5. SD-Karte in den Pi stecken, starten. Die Ersteinrichtung (WLAN, Player-
-   Installation, Autostart) laeuft beim ersten Boot vollautomatisch - es ist
-   kein Monitor, keine Tastatur und keine weitere Eingabe am Pi noetig.
+   Installation, Autostart) laeuft vollautomatisch - es ist kein Monitor,
+   keine Tastatur und keine weitere Eingabe am Pi noetig. Dabei startet der
+   Pi **automatisch 2-3 Mal neu** (technisch bedingt: der allererste Boot hat
+   noch kein Netzwerk, danach folgt die eigentliche Installation und ein
+   letzter Neustart, damit der Kiosk sauber startet) - das ist normal und
+   dauert insgesamt ca. 5-10 Minuten. Erst danach erscheint die
+   Registrierungs-PIN.
 
 ### Option B - Bereits laufender Raspberry Pi
 
@@ -109,3 +114,5 @@ in aller Regel Option A oder B oben.
 | Kiosk bleibt schwarz | `sudo systemctl status cms-kiosk`; pruefen ob `cms-player` laeuft (Kiosk wartet darauf) |
 | Pi findet CMS nicht | `PUBLIC_API_URL` im Backend pruefen, Netzwerk/WLAN-Verbindung des Pi pruefen |
 | Geraet bleibt "Wartet auf Registrierung" | PIN kann abgelaufen sein (15 Minuten) - Pi neu starten fuer neue PIN |
+| Pi startet kurz, rote LED bleibt an, gruene LED geht nach einigen Sekunden aus und nichts passiert mehr | Normalerweise ein bereits vor dem Fix behobener Fehler (Installation lief im falschen, netzwerklosen Boot-Modus). Aktuelle Version des Bereitstellungspakets verwenden. Falls es weiterhin auftritt: SD-Karte an einem PC pruefen, ob `/boot/cmdline.txt` noch den `systemd.run=`-Teil enthaelt (sollte nach erfolgreicher erster Phase automatisch entfernt sein) |
+| Pi startet in einer Dauerschleife immer wieder neu | Meist ein Fehler in `install.sh` (z.B. keine Internetverbindung im WLAN). Monitor anschliessen und die Boot-Meldungen/Fehler direkt beobachten, oder per SSH (falls in Imager aktiviert) einloggen und `journalctl -u cms-firstboot -b` pruefen |
