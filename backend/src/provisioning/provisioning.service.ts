@@ -74,15 +74,11 @@ export class ProvisioningService {
       name: 'cms-provisioning/install.sh',
       mode: 0o755,
     });
-    archive.append(renderTemplate('firstrun.sh.tpl', vars), {
-      name: 'cms-provisioning/firstrun.sh',
-      mode: 0o755,
-    });
     archive.append(renderTemplate('README.md.tpl', vars), {
       name: 'cms-provisioning/README.md',
     });
-    archive.append(renderTemplate('firstrun-append.txt.tpl', vars), {
-      name: 'cms-provisioning/firstrun-append.txt',
+    archive.append(renderTemplate('userdata-append.txt.tpl', vars), {
+      name: 'cms-provisioning/userdata-append.txt',
     });
 
     archive.directory(PLAYER_DIR, 'cms-provisioning/player', (entry) => {

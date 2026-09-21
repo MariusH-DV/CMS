@@ -63,10 +63,14 @@ mkdir -p "${CUSTOM_STAGE}/00-install-cms-player"
 cat > "${CUSTOM_STAGE}/00-install-cms-player/00-run-chroot.sh" <<'EOF'
 #!/bin/bash -e
 cp -r /tmp/cms-provisioning /boot/cms-provisioning
-chmod +x /boot/cms-provisioning/install.sh /boot/cms-provisioning/firstrun.sh
+chmod +x /boot/cms-provisioning/install.sh
+# rc.local laeuft beim ersten echten Boot des fertigen Images bereits nach
+# dem Netzwerkstart (anders als der cloud-init-/cmdline.txt-Weg fuer per
+# Imager geflashte SD-Karten), install.sh kann daher direkt aufgerufen
+# werden. Marker-Datei verhindert erneutes Ausfuehren bei jedem Boot.
 cat >> /etc/rc.local <<'RC'
-if [ -f /boot/cms-provisioning/firstrun.sh ]; then
-  bash /boot/cms-provisioning/firstrun.sh || true
+if [ -f /boot/cms-provisioning/install.sh ] && [ ! -f /var/lib/cms-player-installed ]; then
+  bash /boot/cms-provisioning/install.sh && touch /var/lib/cms-player-installed
 fi
 RC
 EOF
