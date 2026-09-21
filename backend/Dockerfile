@@ -3,6 +3,15 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /repo
 
+# node:*-bookworm-slim bringt kein "openssl"-CLI mit. Ohne diese kann Prisma
+# die vorhandene OpenSSL-Version nicht erkennen, raet falsch (Warnung
+# "Defaulting to openssl-1.1.x") und generiert/laedt dadurch die falsche
+# Engine-Binary - das fuehrt zu einem sonst schwer verstaendlichen
+# "Schema engine error" beim Start. Debian Bookworm hat tatsaechlich
+# OpenSSL 3.0.x, daher hier explizit installieren.
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY package.json ./
 COPY backend/package.json backend/package.json
 COPY frontend/package.json frontend/package.json
@@ -18,6 +27,11 @@ RUN npm run build --workspace backend
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /repo
+
+# Siehe Kommentar in der build-Stage: openssl wird auch zur Laufzeit fuer die
+# Schema-/Query-Engine von Prisma benoetigt.
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package.json ./
 COPY backend/package.json backend/package.json
