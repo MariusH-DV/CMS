@@ -1,6 +1,7 @@
 import { NavLink, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { PERMISSIONS } from '../api/types';
+import logo from '../assets/logo.png';
 
 function navClass({ isActive }: { isActive: boolean }) {
   return `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -15,7 +16,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 shrink-0 border-r border-slate-200 bg-white p-4 flex flex-col gap-6">
       <div className="flex items-center gap-2 px-2 py-1">
-        <i className="fa-solid fa-tv text-brand-500 text-xl" />
+        <img src={logo} alt="Logo" className="h-8 w-8 rounded-md object-cover" />
         <span className="font-semibold text-slate-800">Zentrale CMS</span>
       </div>
 
