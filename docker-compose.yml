@@ -35,7 +35,6 @@ services:
       REPO_ROOT: '/repo'
     volumes:
       - tenant_storage:/data/tenants
-      - .:/repo:ro
     ports:
       - '${BACKEND_PORT:-3000}:3000'
     healthcheck:
