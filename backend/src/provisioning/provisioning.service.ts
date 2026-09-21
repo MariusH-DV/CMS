@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import archiver from 'archiver';
+import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
@@ -49,12 +50,16 @@ export class ProvisioningService {
       TENANT_ID: tenantId,
       TENANT_NAME: tenant.name,
       DEVICE_LABEL: dto.deviceLabel ?? tenant.name,
+      NM_UUID: randomUUID(),
     };
 
     const archive = archiver('zip', { zlib: { level: 9 } });
 
     archive.append(renderTemplate('wpa_supplicant.conf.tpl', vars), {
       name: 'cms-provisioning/wpa_supplicant.conf',
+    });
+    archive.append(renderTemplate('nm-wifi.conf.tpl', vars), {
+      name: 'cms-provisioning/nm-wifi.conf',
     });
     archive.append(renderTemplate('player-config.json.tpl', vars), {
       name: 'cms-provisioning/player-config.json',

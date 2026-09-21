@@ -18,13 +18,17 @@ cat > "${SERVICE_FILE}" <<EOF
 Description=CMS Player - einmalige Ersteinrichtung (nach Netzwerkstart)
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=3600
+StartLimitBurst=5
 
 [Service]
 Type=oneshot
 ExecStart=/bin/bash ${PROVISIONING_DIR}/install.sh
 ExecStartPost=/bin/systemctl disable cms-firstboot.service
 ExecStartPost=/bin/systemctl reboot
-TimeoutStartSec=900
+TimeoutStartSec=1800
+Restart=on-failure
+RestartSec=60
 
 [Install]
 WantedBy=multi-user.target

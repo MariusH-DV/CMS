@@ -1,7 +1,8 @@
 #!/bin/bash
 # CMS Player - Installationsskript fuer Raspberry Pi OS (Lite oder Desktop, Bullseye/Bookworm)
 # Wird entweder manuell auf einem bereits laufenden Pi ausgefuehrt,
-# oder automatisch von firstrun.sh beim allerersten Boot aufgerufen.
+# oder automatisch von cms-firstboot.service beim ersten normalen Boot
+# (nach dem netzwerklosen firstrun.sh-Schritt) aufgerufen.
 set -e
 
 PROVISIONING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,17 +12,55 @@ INSTALL_DIR="/opt/cms-player"
 # 1. SUDO_USER, falls interaktiv per "sudo bash install.sh" ausgefuehrt
 # 2. sonst der einzige Ordner unter /home (von Raspberry Pi Imager beim
 #    Anlegen des Benutzers erstellt - das ist der Fall beim automatischen
-#    Erststart via firstrun.sh, wo es keine sudo-Sitzung gibt)
+#    Erststart via cms-firstboot.service, wo es keine sudo-Sitzung gibt)
 # 3. Fallback "pi" nur falls beides fehlschlaegt
 RUN_USER="${SUDO_USER:-$(ls /home 2>/dev/null | head -n1)}"
 RUN_USER="${RUN_USER:-pi}"
 
-echo "==> CMS Player wird installiert nach ${INSTALL_DIR}"
+echo "==> CMS Player wird installiert nach ${INSTALL_DIR} (Benutzer: ${RUN_USER})"
+
+# WICHTIG: WLAN muss als Allererstes eingerichtet werden - alles Weitere in
+# diesem Skript (apt-get, npm install) braucht eine Internetverbindung.
+# Raspberry Pi OS nutzt je nach Version entweder NetworkManager (Standard
+# seit Bookworm) oder das aeltere wpa_supplicant/dhcpcd-Gespann - beide
+# werden unterstuetzt, je nachdem was auf diesem System aktiv ist.
+if [ -f "${PROVISIONING_DIR}/wpa_supplicant.conf" ] || [ -f "${PROVISIONING_DIR}/nm-wifi.conf" ]; then
+  echo "==> WLAN konfigurieren"
+  rfkill unblock wifi || true
+
+  if systemctl is-active --quiet NetworkManager 2>/dev/null && [ -f "${PROVISIONING_DIR}/nm-wifi.conf" ]; then
+    echo "==> NetworkManager erkannt - WLAN-Profil einrichten"
+    install -m 600 "${PROVISIONING_DIR}/nm-wifi.conf" /etc/NetworkManager/system-connections/cms-wifi.nmconnection
+    nmcli connection reload || true
+    nmcli connection up cms-wifi || true
+  elif [ -f "${PROVISIONING_DIR}/wpa_supplicant.conf" ]; then
+    echo "==> wpa_supplicant/dhcpcd erkannt - WLAN-Profil einrichten"
+    cp "${PROVISIONING_DIR}/wpa_supplicant.conf" /etc/wpa_supplicant/wpa_supplicant.conf
+    wpa_cli -i wlan0 reconfigure || systemctl restart dhcpcd || true
+  fi
+fi
+
+echo "==> Warte auf Internetverbindung (bis zu 7,5 Minuten)..."
+NETWORK_READY=0
+for i in $(seq 1 90); do
+  if timeout 3 bash -c "echo > /dev/tcp/deb.debian.org/443" 2>/dev/null; then
+    NETWORK_READY=1
+    break
+  fi
+  sleep 5
+done
+if [ "${NETWORK_READY}" -ne 1 ]; then
+  echo "FEHLER: Nach 7,5 Minuten weiterhin keine Internetverbindung."
+  echo "Bitte WLAN-Zugangsdaten (SSID/Passwort) pruefen. Der Dienst versucht es"
+  echo "automatisch spaeter erneut (systemd Restart=on-failure)."
+  exit 1
+fi
+echo "==> Internetverbindung steht."
 
 echo "==> Systempakete aktualisieren und Abhaengigkeiten installieren"
 apt-get update -y
 apt-get install -y --no-install-recommends \
-  nodejs npm chromium-browser unclutter xdotool xserver-xorg xinit lightdm
+  nodejs npm chromium-browser unclutter xdotool xserver-xorg xinit lightdm curl
 
 mkdir -p "${INSTALL_DIR}/config"
 cp -r "${PROVISIONING_DIR}/player/"* "${INSTALL_DIR}/"
@@ -30,13 +69,6 @@ cp "${PROVISIONING_DIR}/player-config.json" "${INSTALL_DIR}/config/player-config
 echo "==> Node-Abhaengigkeiten installieren"
 cd "${INSTALL_DIR}"
 npm install --omit=dev
-
-echo "==> WLAN konfigurieren"
-if [ -f "${PROVISIONING_DIR}/wpa_supplicant.conf" ]; then
-  cp "${PROVISIONING_DIR}/wpa_supplicant.conf" /etc/wpa_supplicant/wpa_supplicant.conf
-  rfkill unblock wifi || true
-  wpa_cli -i wlan0 reconfigure || true
-fi
 
 echo "==> systemd-Dienste einrichten (Autostart) fuer Benutzer ${RUN_USER}"
 # Die Vorlagen sind auf den Benutzer "pi" ausgelegt - hier auf den tatsaechlich
