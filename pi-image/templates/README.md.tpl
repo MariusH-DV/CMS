@@ -14,8 +14,15 @@ Neustart automatisch an (kein PIN mehr noetig).
 
 1. Lade den [Raspberry Pi Imager](https://www.raspberrypi.com/software/) herunter.
 2. Waehle als Betriebssystem **Raspberry Pi OS Lite (64-bit)**.
-3. Klicke auf das Zahnrad-Symbol ("Erweiterte Optionen" / OS anpassen) und aktiviere SSH.
-   WLAN musst du dort NICHT eintragen, das uebernimmt dieses Paket.
+3. Klicke auf das Zahnrad-Symbol ("Erweiterte Optionen" / OS anpassen) und setze dort
+   **einen Benutzernamen und ein Passwort** (aktiviere zusaetzlich gerne SSH). WLAN
+   musst du dort NICHT eintragen, das uebernimmt dieses Paket.
+   **Wichtig:** Diesen Schritt nicht ueberspringen - Raspberry Pi OS legt seit
+   einigen Jahren keinen Standardbenutzer mehr automatisch an. Ohne einen hier
+   gesetzten Benutzer wuerde der Pi beim ersten Start einen angeschlossenen
+   Monitor/Tastatur verlangen, um interaktiv einen Benutzer anzulegen - die
+   automatische Einrichtung waere dann unterbrochen. Der Benutzername selbst
+   ist frei waehlbar (z.B. `pi`), das Installationsskript erkennt ihn automatisch.
 4. Flashe die SD-Karte.
 5. Nach dem Flashen: SD-Karte am Rechner erneut einlegen. Es erscheint das Boot-Laufwerk
    ("bootfs" bzw. "boot").
