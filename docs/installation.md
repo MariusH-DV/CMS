@@ -49,8 +49,14 @@ Danach im Browser `http://localhost:5173` oeffnen und mit den Bootstrap-Zugangsd
 
 ## Produktion mit Docker Compose
 
+Fuer eine ausfuehrliche Schritt-fuer-Schritt-Anleitung (Docker installieren,
+`.env` konfigurieren, starten, Backups, Fehlerbehebung) siehe
+**[Installation mit Docker](docker-installation.md)**. Kurzfassung:
+
 ```bash
-docker compose up --build -d
+cp .env.example .env
+# .env anpassen: POSTGRES_PASSWORD, JWT_SECRET, BOOTSTRAP_ADMIN_PASSWORD, PUBLIC_API_URL, ...
+docker compose up -d --build
 ```
 
 Der Stack besteht aus:
@@ -60,15 +66,6 @@ Der Stack besteht aus:
   und den Seed aus), Port 3000
 - `frontend` - mit nginx ausgelieferte React-App, die `/api` an den Backend-Service
   weiterleitet, Port 5173 (extern) / 80 (intern)
-
-Fuer den produktiven Einsatz unbedingt anpassen:
-
-- `JWT_SECRET` auf einen langen, zufaelligen Wert setzen
-- `BOOTSTRAP_ADMIN_PASSWORD` nach dem ersten Login aendern (eigenen Benutzer anlegen,
-  Bootstrap-Konto deaktivieren)
-- `PUBLIC_API_URL` auf die tatsaechliche, oeffentlich erreichbare Adresse setzen
-  (empfohlen: hinter einem Reverse Proxy mit HTTPS, z.B. Traefik/nginx/Caddy)
-- Regelmaessige Backups des `postgres_data`- und `tenant_storage`-Volumes einrichten
 
 ## Datenbank-Migrationen
 

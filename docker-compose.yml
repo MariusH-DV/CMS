@@ -1,19 +1,15 @@
-version: '3.9'
-
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: cms
-      POSTGRES_PASSWORD: cms
-      POSTGRES_DB: cms
-    ports:
-      - '5432:5432'
+      POSTGRES_USER: ${POSTGRES_USER:-cms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cms}
+      POSTGRES_DB: ${POSTGRES_DB:-cms}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U cms']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-cms}']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -27,21 +23,21 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: 'postgresql://cms:cms@postgres:5432/cms?schema=public'
-      JWT_SECRET: 'change-me-to-a-long-random-secret'
-      JWT_EXPIRES_IN: '8h'
+      DATABASE_URL: 'postgresql://${POSTGRES_USER:-cms}:${POSTGRES_PASSWORD:-cms}@postgres:5432/${POSTGRES_DB:-cms}?schema=public'
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-secret}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       PORT: 3000
-      CORS_ORIGIN: 'http://localhost:5173'
-      PUBLIC_API_URL: 'http://localhost:3000/api'
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000/api}
       STORAGE_ROOT: '/data/tenants'
-      BOOTSTRAP_ADMIN_EMAIL: 'admin@example.com'
-      BOOTSTRAP_ADMIN_PASSWORD: 'ChangeMe123!'
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-ChangeMe123!}
       REPO_ROOT: '/repo'
     volumes:
       - tenant_storage:/data/tenants
       - .:/repo:ro
     ports:
-      - '3000:3000'
+      - '${BACKEND_PORT:-3000}:3000'
 
   frontend:
     build:
@@ -51,7 +47,7 @@ services:
     depends_on:
       - backend
     ports:
-      - '5173:80'
+      - '${FRONTEND_PORT:-5173}:80'
 
 volumes:
   postgres_data:

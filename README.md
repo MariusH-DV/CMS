@@ -48,15 +48,21 @@ Login mit den in `.env` hinterlegten `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_
 ## Schnellstart mit Docker Compose
 
 ```bash
-docker compose up --build
+cp .env.example .env
+# .env anpassen (Passwoerter, JWT_SECRET, ...) - siehe docs/docker-installation.md
+
+docker compose up -d --build
 ```
 
-Startet PostgreSQL, Backend (Port 3000) und Frontend (Port 5173).
+Startet PostgreSQL, Backend (Port 3000) und Frontend (Port 5173). Ausfuehrliche
+Schritt-fuer-Schritt-Anleitung inkl. Docker-Installation, Backups und
+Fehlerbehebung: **[Installation mit Docker](docs/docker-installation.md)**.
 
 ## Dokumentation
 
 - [Architektur](docs/architecture.md)
 - [Installation & Deployment](docs/installation.md)
+- [Installation mit Docker](docs/docker-installation.md)
 - [API-Referenz](docs/api.md)
 - [Raspberry-Pi-Player einrichten](docs/raspberry-pi.md)
 - [Benutzerhandbuch (System-Admin & Mandant-Admin)](docs/admin-guide.md)
