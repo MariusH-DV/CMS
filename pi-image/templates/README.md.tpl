@@ -52,8 +52,11 @@ Neustart automatisch an (kein PIN mehr noetig).
 
 - `player/` - der Player selbst (Node.js-Server + Kiosk-Weboberflaeche)
 - `player-config.json` - enthaelt die CMS-API-Adresse und die Mandanten-ID
-- `wpa_supplicant.conf` - dein hinterlegtes WLAN
-- `install.sh` - Installationsskript (Option B)
+- `wpa_supplicant.conf`, `nm-wifi.conf` - dein hinterlegtes WLAN (fuer beide
+  auf Raspberry Pi OS moeglichen Netzwerk-Systeme, `install.sh` erkennt automatisch,
+  welches davon verwendet wird)
+- `install.sh` - Installationsskript (Option B). Richtet zuerst WLAN ein und wartet
+  bis zu 7,5 Minuten auf eine echte Internetverbindung, bevor Pakete installiert werden
 - `firstrun.sh` - Installationsskript fuer die automatische Erstinstallation (Option A)
 - `cms-player.service`, `cms-kiosk.service` - systemd-Dienste fuer Autostart
 

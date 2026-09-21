@@ -64,7 +64,12 @@ sudo reboot
 - **Autologin/Autostart**: beide Dienste sind als systemd-Dienste aktiviert
   (`enable`), starten also automatisch bei jedem Boot, ohne dass sich jemand
   am Pi anmelden muss.
-- **WLAN**: `wpa_supplicant.conf` mit den im CMS eingegebenen Zugangsdaten.
+- **WLAN**: sowohl `wpa_supplicant.conf` (aelteres Raspberry Pi OS) als auch
+  `nm-wifi.conf` fuer NetworkManager (Standard seit Bookworm) mit den im CMS
+  eingegebenen Zugangsdaten - `install.sh` erkennt automatisch, welches
+  Netzwerksystem aktiv ist, richtet WLAN als allererstes ein und wartet
+  danach auf eine funktionierende Internetverbindung, bevor irgendetwas
+  installiert wird.
 
 ## Registrierungs-PIN & automatische Anmeldung
 
@@ -116,3 +121,5 @@ in aller Regel Option A oder B oben.
 | Geraet bleibt "Wartet auf Registrierung" | PIN kann abgelaufen sein (15 Minuten) - Pi neu starten fuer neue PIN |
 | Pi startet kurz, rote LED bleibt an, gruene LED geht nach einigen Sekunden aus und nichts passiert mehr | Normalerweise ein bereits vor dem Fix behobener Fehler (Installation lief im falschen, netzwerklosen Boot-Modus). Aktuelle Version des Bereitstellungspakets verwenden. Falls es weiterhin auftritt: SD-Karte an einem PC pruefen, ob `/boot/cmdline.txt` noch den `systemd.run=`-Teil enthaelt (sollte nach erfolgreicher erster Phase automatisch entfernt sein) |
 | Pi startet in einer Dauerschleife immer wieder neu | Meist ein Fehler in `install.sh` (z.B. keine Internetverbindung im WLAN). Monitor anschliessen und die Boot-Meldungen/Fehler direkt beobachten, oder per SSH (falls in Imager aktiviert) einloggen und `journalctl -u cms-firstboot -b` pruefen |
+| Installation haengt nach dem zweiten Neustart, WLAN-LED am Router zeigt keine Verbindung | SSID/Passwort falsch, oder Pi im 5-GHz-Netz waehrend das Modul nur 2,4 GHz unterstuetzt. `install.sh` (ab dieser Version) wartet bis zu 7,5 Minuten auf Internet und versucht es danach automatisch erneut (bis zu 5x pro Stunde) - bei dauerhaft falschem WLAN aber vergeblich. Per Monitor/SSH pruefen: `nmcli connection show` bzw. `wpa_cli status` |
+| `install.sh` findet kein WLAN, obwohl SSID/Passwort korrekt sind | Pruefen, welches Netzwerksystem aktiv ist: `systemctl is-active NetworkManager`. Ist es aktiv, muss `/etc/NetworkManager/system-connections/cms-wifi.nmconnection` existieren (aus `nm-wifi.conf`); sonst wird `wpa_supplicant.conf` verwendet |
