@@ -10,7 +10,15 @@
 # zwei- bis dreimal neu - das ist normal und beabsichtigt.
 set -e
 
-PROVISIONING_DIR="/boot/cms-provisioning"
+# Eigenen Pfad dynamisch ermitteln statt "/boot" hart zu kodieren: aktuelle
+# Raspberry Pi OS Versionen (Bookworm+) haengen die Boot-Partition unter
+# /boot/firmware ein, aeltere unter /boot - je nachdem, welcher Pfad in
+# cmdline.txt eingetragen wurde (siehe firstrun-append.txt), landet dieses
+# Skript an der jeweils richtigen Stelle. ${BASH_SOURCE[0]} ist dabei genau
+# der Pfad, unter dem systemd dieses Skript ueber "systemd.run=" aufgerufen hat.
+PROVISIONING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BOOT_ROOT="$(dirname "${PROVISIONING_DIR}")"
+CMDLINE_FILE="${BOOT_ROOT}/cmdline.txt"
 SERVICE_FILE="/etc/systemd/system/cms-firstboot.service"
 
 cat > "${SERVICE_FILE}" <<EOF
@@ -43,7 +51,7 @@ sed -i \
   -e 's/ systemd\.run=[^ ]*//' \
   -e 's/ systemd\.run_success_action=[^ ]*//' \
   -e 's/ systemd\.unit=kernel-command-line\.target//' \
-  /boot/cmdline.txt
+  "${CMDLINE_FILE}"
 
 rm -f "${PROVISIONING_DIR}/firstrun.sh" || true
 
