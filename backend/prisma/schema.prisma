@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantRole {
+  TENANT_ADMIN
+  TENANT_USER
+}
+
+enum DeviceStatus {
+  PENDING
+  ACTIVE
+  OFFLINE
+  DISABLED
+}
+
+enum ScheduleRecurrence {
+  ONCE
+  DAILY
+  WEEKLY
+}
+
+/// Mandant
+model Tenant {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  storagePath String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  license     License?
+  memberships TenantMembership[]
+  devices     Device[]
+  mediaAssets MediaAsset[]
+  playlists   Playlist[]
+  schedules   Schedule[]
+
+  @@map("tenants")
+}
+
+/// Lizenz eines Mandanten: Anzahl Monitore / Benutzer / Speicher
+model License {
+  id           String    @id @default(uuid())
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId     String    @unique
+  maxMonitors  Int       @default(5)
+  maxUsers     Int       @default(5)
+  maxStorageMb Int       @default(1024)
+  validFrom    DateTime  @default(now())
+  validUntil   DateTime?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("licenses")
+}
+
+/// Benutzer des Systems (kann System-Admin und/oder Mitglied mehrerer Mandanten sein)
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  isSystemAdmin Boolean  @default(false)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  memberships TenantMembership[]
+  mediaUploads MediaAsset[]
+
+  @@map("users")
+}
+
+/// Zuordnung Benutzer <-> Mandant inkl. Rolle & granularer Berechtigungen
+model TenantMembership {
+  id          String     @id @default(uuid())
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId    String
+  role        TenantRole @default(TENANT_USER)
+  /// Granulare Berechtigungs-Keys, z.B. "devices.manage", "media.manage", "playlists.manage", "schedules.manage", "users.manage"
+  permissions String[]   @default([])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([userId, tenantId])
+  @@map("tenant_memberships")
+}
+
+/// Player-Gerät (Raspberry Pi). tenantId ist null, solange das Geraet noch keinem
+/// Mandanten zugewiesen (per PIN "geclaimt") wurde.
+model Device {
+  id           String        @id @default(uuid())
+  tenant       Tenant?       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId     String?
+  hardwareId   String?       @unique
+  name         String        @default("Neues Geraet")
+  pin          String?       @unique
+  pinExpiresAt DateTime?
+  apiToken     String?       @unique
+  status       DeviceStatus  @default(PENDING)
+  lastSeenAt   DateTime?
+  ipAddress    String?
+  wlanSsid     String?
+  playlist     Playlist?     @relation(fields: [playlistId], references: [id])
+  playlistId   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  schedules Schedule[]
+
+  @@map("devices")
+}
+
+/// Hochgeladene Mediendatei (Bild/Video) eines Mandanten
+model MediaAsset {
+  id           String   @id @default(uuid())
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId     String
+  fileName     String
+  storageKey   String
+  mimeType     String
+  sizeBytes    Int
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  playlistItems PlaylistItem[]
+
+  @@map("media_assets")
+}
+
+/// Playlist (Abfolge von Medien) eines Mandanten
+model Playlist {
+  id        String   @id @default(uuid())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items     PlaylistItem[]
+  schedules Schedule[]
+  devices   Device[]
+
+  @@map("playlists")
+}
+
+/// Eintrag innerhalb einer Playlist
+model PlaylistItem {
+  id              String     @id @default(uuid())
+  playlist        Playlist   @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  playlistId      String
+  mediaAsset      MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  mediaAssetId    String
+  order           Int
+  durationSeconds Int        @default(10)
+
+  @@map("playlist_items")
+}
+
+/// Zeitplan: welche Playlist auf welchem Gerät wann laufen soll
+model Schedule {
+  id         String             @id @default(uuid())
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId   String
+  playlist   Playlist           @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  playlistId String
+  device     Device             @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId   String
+  startAt    DateTime
+  endAt      DateTime?
+  recurrence ScheduleRecurrence @default(ONCE)
+  priority   Int                @default(0)
+  createdAt  DateTime           @default(now())
+
+  @@map("schedules")
+}

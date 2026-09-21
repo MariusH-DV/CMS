@@ -1,0 +1,14 @@
+{
+  "name": "cms-player",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CMS Player fuer Raspberry-Pi-Kiosk (PIN-Registrierung + Playlist-Wiedergabe)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1"
+  }
+}

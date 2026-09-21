@@ -1,0 +1,19 @@
+{
+  "name": "zentrale-cms",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Zentrale CMS-Verwaltungssoftware fuer Digital Signage (Mandanten, Lizenzen, Raspberry-Pi-Player)",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "player"
+  ],
+  "scripts": {
+    "dev:backend": "npm run start:dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "dev:player": "npm run dev --workspace player",
+    "build": "npm run build --workspace backend && npm run build --workspace frontend && npm run build --workspace player",
+    "prisma:generate": "npm run prisma:generate --workspace backend",
+    "prisma:migrate": "npm run prisma:migrate --workspace backend"
+  }
+}

@@ -1,0 +1,48 @@
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import { TenantsService } from './tenants.service';
+import { CreateTenantDto } from './dto/create-tenant.dto';
+import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { UpsertLicenseDto } from './dto/upsert-license.dto';
+import { SystemAdminOnly, RequirePermissions } from '../common/decorators/permissions.decorator';
+import { PERMISSIONS } from '../common/permissions.constants';
+
+@Controller('tenants')
+export class TenantsController {
+  constructor(private tenantsService: TenantsService) {}
+
+  @SystemAdminOnly()
+  @Post()
+  create(@Body() dto: CreateTenantDto) {
+    return this.tenantsService.create(dto);
+  }
+
+  @SystemAdminOnly()
+  @Get()
+  findAll() {
+    return this.tenantsService.findAll();
+  }
+
+  @RequirePermissions(PERMISSIONS.TENANT_SETTINGS_MANAGE)
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.tenantsService.findOne(id);
+  }
+
+  @RequirePermissions(PERMISSIONS.TENANT_SETTINGS_MANAGE)
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateTenantDto) {
+    return this.tenantsService.update(id, dto);
+  }
+
+  @SystemAdminOnly()
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.tenantsService.remove(id);
+  }
+
+  @SystemAdminOnly()
+  @Put(':id/license')
+  upsertLicense(@Param('id') id: string, @Body() dto: UpsertLicenseDto) {
+    return this.tenantsService.upsertLicense(id, dto);
+  }
+}
