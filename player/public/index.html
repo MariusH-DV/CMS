@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CMS Player</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="pairing-screen" class="screen hidden">
+    <div class="pairing-card">
+      <div class="pairing-label">Registrierungs-PIN</div>
+      <div id="pin" class="pin">------</div>
+      <div class="pairing-hint">
+        Im CMS unter <strong>Mandant &rarr; Ger&auml;te &rarr; PIN eingeben</strong> registrieren.
+      </div>
+      <div id="pairing-tenant" class="pairing-tenant"></div>
+    </div>
+  </div>
+
+  <div id="empty-screen" class="screen hidden">
+    <div class="pairing-card">
+      <div class="pairing-label">Keine Playlist zugewiesen</div>
+      <div id="empty-tenant" class="pairing-tenant"></div>
+    </div>
+  </div>
+
+  <div id="error-screen" class="screen hidden">
+    <div class="pairing-card">
+      <div class="pairing-label">Verbindungsfehler</div>
+      <div id="error-message" class="pairing-hint"></div>
+    </div>
+  </div>
+
+  <div id="player-screen" class="screen hidden">
+    <img id="media-image" class="media" />
+    <video id="media-video" class="media" muted playsinline></video>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

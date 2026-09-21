@@ -1,0 +1,6 @@
+{
+  "apiBaseUrl": "http://localhost:3000/api",
+  "tenantId": "test",
+  "tenantName": "Test-Player",
+  "deviceLabel": "Sandbox"
+}
