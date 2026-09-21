@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiErrorMessage } from '../api/client';
+import logo from '../assets/logo.png';
 
 export default function LoginPage() {
   const { user, login } = useAuth();
@@ -33,7 +34,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm card p-8">
         <div className="flex items-center gap-2 justify-center mb-6">
-          <i className="fa-solid fa-tv text-brand-500 text-2xl" />
+          <img src={logo} alt="Logo" className="h-10 w-10 rounded-lg object-cover" />
           <span className="text-xl font-semibold text-slate-800">Zentrale CMS</span>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

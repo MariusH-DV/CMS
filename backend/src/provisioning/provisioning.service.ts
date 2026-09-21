@@ -43,9 +43,15 @@ export class ProvisioningService {
       );
     }
 
+    // WLAN wird bei aktuellen Raspberry Pi OS Versionen meist bereits direkt im
+    // Raspberry Pi Imager eingerichtet (siehe cloud-init-Ablauf). Die Angabe im
+    // CMS ist daher optional - nur wenn beides gesetzt ist, legen wir zusaetzlich
+    // wpa_supplicant.conf/nm-wifi.conf als Fallback bei (z.B. fuer Option B).
+    const hasWifi = Boolean(dto.ssid && dto.wifiPassword);
+
     const vars = {
-      SSID: dto.ssid,
-      WIFI_PASSWORD: dto.wifiPassword,
+      SSID: dto.ssid ?? '',
+      WIFI_PASSWORD: dto.wifiPassword ?? '',
       API_URL: this.config.get<string>('PUBLIC_API_URL') ?? 'http://localhost:3000/api',
       TENANT_ID: tenantId,
       TENANT_NAME: tenant.name,
@@ -55,12 +61,14 @@ export class ProvisioningService {
 
     const archive = archiver('zip', { zlib: { level: 9 } });
 
-    archive.append(renderTemplate('wpa_supplicant.conf.tpl', vars), {
-      name: 'cms-provisioning/wpa_supplicant.conf',
-    });
-    archive.append(renderTemplate('nm-wifi.conf.tpl', vars), {
-      name: 'cms-provisioning/nm-wifi.conf',
-    });
+    if (hasWifi) {
+      archive.append(renderTemplate('wpa_supplicant.conf.tpl', vars), {
+        name: 'cms-provisioning/wpa_supplicant.conf',
+      });
+      archive.append(renderTemplate('nm-wifi.conf.tpl', vars), {
+        name: 'cms-provisioning/nm-wifi.conf',
+      });
+    }
     archive.append(renderTemplate('player-config.json.tpl', vars), {
       name: 'cms-provisioning/player-config.json',
     });
