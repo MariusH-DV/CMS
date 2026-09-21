@@ -63,6 +63,7 @@ Fehlerbehebung: **[Installation mit Docker](docs/docker-installation.md)**.
 - [Architektur](docs/architecture.md)
 - [Installation & Deployment](docs/installation.md)
 - [Installation mit Docker](docs/docker-installation.md)
+- [Installation unter Plesk (mit Docker-Erweiterung)](docs/plesk-installation.md)
 - [API-Referenz](docs/api.md)
 - [Raspberry-Pi-Player einrichten](docs/raspberry-pi.md)
 - [Benutzerhandbuch (System-Admin & Mandant-Admin)](docs/admin-guide.md)
