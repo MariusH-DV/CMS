@@ -6,7 +6,15 @@ set -e
 
 PROVISIONING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="/opt/cms-player"
-RUN_USER="${SUDO_USER:-pi}"
+# Ermittelt den tatsaechlichen Benutzer automatisch, damit die Installation
+# unabhaengig vom in Raspberry Pi Imager gewaehlten Benutzernamen funktioniert:
+# 1. SUDO_USER, falls interaktiv per "sudo bash install.sh" ausgefuehrt
+# 2. sonst der einzige Ordner unter /home (von Raspberry Pi Imager beim
+#    Anlegen des Benutzers erstellt - das ist der Fall beim automatischen
+#    Erststart via firstrun.sh, wo es keine sudo-Sitzung gibt)
+# 3. Fallback "pi" nur falls beides fehlschlaegt
+RUN_USER="${SUDO_USER:-$(ls /home 2>/dev/null | head -n1)}"
+RUN_USER="${RUN_USER:-pi}"
 
 echo "==> CMS Player wird installiert nach ${INSTALL_DIR}"
 
@@ -30,9 +38,15 @@ if [ -f "${PROVISIONING_DIR}/wpa_supplicant.conf" ]; then
   wpa_cli -i wlan0 reconfigure || true
 fi
 
-echo "==> systemd-Dienste einrichten (Autostart)"
-cp "${PROVISIONING_DIR}/cms-player.service" /etc/systemd/system/cms-player.service
-cp "${PROVISIONING_DIR}/cms-kiosk.service" /etc/systemd/system/cms-kiosk.service
+echo "==> systemd-Dienste einrichten (Autostart) fuer Benutzer ${RUN_USER}"
+# Die Vorlagen sind auf den Benutzer "pi" ausgelegt - hier auf den tatsaechlich
+# vorhandenen Benutzer umschreiben (User=, WorkingDirectory=, /home/pi/...).
+sed -e "s/^User=pi$/User=${RUN_USER}/" \
+    -e "s#/home/pi#/home/${RUN_USER}#g" \
+    "${PROVISIONING_DIR}/cms-player.service" > /etc/systemd/system/cms-player.service
+sed -e "s/^User=pi$/User=${RUN_USER}/" \
+    -e "s#/home/pi#/home/${RUN_USER}#g" \
+    "${PROVISIONING_DIR}/cms-kiosk.service" > /etc/systemd/system/cms-kiosk.service
 systemctl daemon-reload
 systemctl enable cms-player.service
 systemctl enable cms-kiosk.service

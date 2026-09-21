@@ -21,14 +21,22 @@ Installationswegen. Kurzfassung:
 ### Option A - Frische SD-Karte (empfohlen fuer neue Geraete)
 
 1. [Raspberry Pi Imager](https://www.raspberrypi.com/software/) installieren.
-2. Betriebssystem **Raspberry Pi OS Lite (64-bit)** waehlen und auf eine
-   SD-Karte flashen (WLAN muss dabei NICHT eingerichtet werden, das
-   uebernimmt unser Paket).
+2. Betriebssystem **Raspberry Pi OS Lite (64-bit)** waehlen. Vor dem Flashen
+   auf das Zahnrad-Symbol ("Erweiterte Optionen" / OS anpassen) klicken und
+   dort **einen Benutzernamen und ein Passwort setzen** (Hostname/SSH nach
+   Belieben, WLAN NICHT eintragen - das uebernimmt unser Paket). Das ist ein
+   Muss: Raspberry Pi OS legt seit einigen Jahren keinen Standardbenutzer
+   mehr an - ohne diesen Schritt wuerde der Pi beim ersten Start einen
+   Monitor/Tastatur verlangen, um interaktiv einen Benutzer anzulegen, und
+   die automatische Ersteinrichtung waere unterbrochen. Der gewaehlte
+   Benutzername ist beliebig (z.B. `pi`) - unser Installationsskript
+   erkennt ihn automatisch. Danach flashen.
 3. SD-Karte erneut einlegen, den Ordner `cms-provisioning/` aus dem
    heruntergeladenen ZIP in das Wurzelverzeichnis des Boot-Laufwerks kopieren.
 4. `cmdline.txt` auf dem Boot-Laufwerk gemaess `firstrun-append.txt` erweitern.
 5. SD-Karte in den Pi stecken, starten. Die Ersteinrichtung (WLAN, Player-
-   Installation, Autostart) laeuft beim ersten Boot automatisch.
+   Installation, Autostart) laeuft beim ersten Boot vollautomatisch - es ist
+   kein Monitor, keine Tastatur und keine weitere Eingabe am Pi noetig.
 
 ### Option B - Bereits laufender Raspberry Pi
 
