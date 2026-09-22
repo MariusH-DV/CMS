@@ -17,10 +17,18 @@ until curl -s http://localhost:8088/health > /dev/null 2>&1; do
   sleep 1
 done
 
+# Der Name des Chromium-Binaries hat sich zwischen Raspberry-Pi-OS-Versionen
+# geaendert: auf aelteren Versionen ist "chromium-browser" das echte Programm,
+# auf neueren (Debian "Trixie" und neuer) ist "chromium-browser" nur noch ein
+# leeres Transitional-Paket ohne eigene Datei - das echte Programm heisst
+# schlicht "chromium". Deshalb hier dynamisch ermitteln statt fest zu
+# verdrahten.
+CHROMIUM_BIN="$(command -v chromium-browser || command -v chromium || echo chromium-browser)"
+
 # Falls Chromium abstuerzt, automatisch neu starten (kein systemd noetig,
 # da wir absichtlich ohne Displaymanager arbeiten).
 while true; do
-  chromium-browser \
+  "${CHROMIUM_BIN}" \
     --kiosk \
     --noerrdialogs \
     --disable-infobars \
