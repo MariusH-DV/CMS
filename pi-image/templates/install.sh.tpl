@@ -86,8 +86,14 @@ systemctl enable cms-player.service
 systemctl enable cms-kiosk.service
 
 echo "==> Automatischen Login fuer Benutzer ${RUN_USER} aktivieren (Kiosk-Start ohne Anmeldung)"
-raspi-config nonint do_boot_behaviour B4 || true   # Desktop Autologin
-raspi-config nonint do_boot_behaviour B2 || true 2>/dev/null || true
+# B4 = "Desktop Autologin": setzt u.a. das systemd-Standardziel auf
+# graphical.target (das cms-kiosk.service braucht, siehe WantedBy=
+# graphical.target in cms-kiosk.service) und richtet lightdm-Autologin fuer
+# den Benutzer ein. NICHT zusaetzlich B2 (Console Autologin) aufrufen - das
+# wuerde das Standardziel wieder auf multi-user.target zuruecksetzen und
+# cms-kiosk.service so nie starten (genau das war der Bug: der Dienst blieb
+# "inactive (dead)", weil graphical.target nie erreicht wurde).
+raspi-config nonint do_boot_behaviour B4
 
 chown -R "${RUN_USER}:${RUN_USER}" "${INSTALL_DIR}"
 
