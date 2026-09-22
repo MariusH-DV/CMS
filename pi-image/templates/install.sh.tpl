@@ -6,6 +6,16 @@
 # Zeitpunkt bereits Netzwerk vorhanden.
 set -e
 
+# Fortschritt zusaetzlich auf dem angeschlossenen Bildschirm anzeigen - vor
+# allem bei Option A (automatischer Start ueber cloud-init "runcmd") wichtig:
+# dort landet die Ausgabe sonst nur in der cloud-init-Logdatei, der Monitor
+# bleibt bis zum Ende komplett schwarz. tee schreibt zusaetzlich weiterhin
+# ganz normal in die eigentliche Log-Ausgabe (bei Option B also weiterhin auch
+# im SSH-Terminal sichtbar).
+if [ -w /dev/tty1 ]; then
+  exec > >(tee -a /dev/tty1) 2>&1
+fi
+
 PROVISIONING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="/opt/cms-player"
 # Ermittelt den tatsaechlichen Benutzer automatisch, damit die Installation
@@ -42,6 +52,21 @@ if [ -f "${PROVISIONING_DIR}/wpa_supplicant.conf" ] || [ -f "${PROVISIONING_DIR}
   fi
 fi
 
+# WLAN-Stromsparmodus abschalten - unabhaengig davon, WIE die WLAN-Verbindung
+# eingerichtet wurde (auch wenn sie bereits vom Raspberry Pi Imager selbst
+# angelegt wurde, nicht nur bei einem eigenen nm-wifi.conf-Profil oben).
+# Stromsparen kann den Durchsatz drastisch einbrechen lassen (im Extremfall
+# auf wenige kB/s), was gerade den Paketdownload weiter unten unnoetig
+# ausbremst.
+if command -v nmcli >/dev/null 2>&1 && systemctl is-active --quiet NetworkManager 2>/dev/null; then
+  ACTIVE_WIFI_CONN="$(nmcli -t -f NAME,TYPE connection show --active 2>/dev/null | awk -F: '$2=="802-11-wireless"{print $1; exit}')"
+  if [ -n "${ACTIVE_WIFI_CONN}" ]; then
+    nmcli connection modify "${ACTIVE_WIFI_CONN}" 802-11-wireless.powersave 2 || true
+    nmcli connection up "${ACTIVE_WIFI_CONN}" || true
+  fi
+fi
+iw dev wlan0 set power_save off 2>/dev/null || true
+
 echo "==> Warte auf Internetverbindung (bis zu 7,5 Minuten)..."
 NETWORK_READY=0
 for i in $(seq 1 90); do
@@ -60,9 +85,21 @@ fi
 echo "==> Internetverbindung steht."
 
 echo "==> Systempakete aktualisieren und Abhaengigkeiten installieren"
+# Manche Heimnetze/Router haben eine kaputte/unvollstaendige IPv6-Route -
+# apt versucht dann oft trotzdem zuerst IPv6 und haengt/schlaegt fehl
+# ("Unable to connect ... [IP: <ipv6>]"), obwohl IPv4 einwandfrei geht.
+# Deshalb apt fest auf IPv4 zwingen.
+echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
 apt-get update -y
 apt-get install -y --no-install-recommends \
-  nodejs npm chromium-browser unclutter xdotool xserver-xorg xinit lightdm curl
+  nodejs npm chromium-browser unclutter xdotool xserver-xorg xinit x11-xserver-utils curl
+
+# Falls ein Displaymanager (z.B. lightdm) aus einem "Desktop"-Basisimage
+# vorhanden ist: deaktivieren. Wir starten X selbst per .bash_profile/startx
+# (siehe unten) - kein Displaymanager, kein Login-Fenster, kein Session-
+# Auswahlproblem.
+systemctl disable lightdm 2>/dev/null || true
+systemctl stop lightdm 2>/dev/null || true
 
 mkdir -p "${INSTALL_DIR}/config"
 cp -r "${PROVISIONING_DIR}/player/"* "${INSTALL_DIR}/"
@@ -72,28 +109,32 @@ echo "==> Node-Abhaengigkeiten installieren"
 cd "${INSTALL_DIR}"
 npm install --omit=dev
 
-echo "==> systemd-Dienste einrichten (Autostart) fuer Benutzer ${RUN_USER}"
-# Die Vorlagen sind auf den Benutzer "pi" ausgelegt - hier auf den tatsaechlich
+echo "==> systemd-Dienst fuer den Player-Hintergrunddienst einrichten (Autostart)"
+# Die Vorlage ist auf den Benutzer "pi" ausgelegt - hier auf den tatsaechlich
 # vorhandenen Benutzer umschreiben (User=, WorkingDirectory=, /home/pi/...).
+# Der Kiosk (Chromium) laeuft NICHT als systemd-Dienst, sondern wird ueber
+# .bash_profile/startx gestartet (siehe unten) - das vermeidet jegliche
+# Displaymanager/Boot-Target-Probleme (kein lightdm-Login-Fenster).
 sed -e "s/^User=pi$/User=${RUN_USER}/" \
     -e "s#/home/pi#/home/${RUN_USER}#g" \
     "${PROVISIONING_DIR}/cms-player.service" > /etc/systemd/system/cms-player.service
-sed -e "s/^User=pi$/User=${RUN_USER}/" \
-    -e "s#/home/pi#/home/${RUN_USER}#g" \
-    "${PROVISIONING_DIR}/cms-kiosk.service" > /etc/systemd/system/cms-kiosk.service
 systemctl daemon-reload
 systemctl enable cms-player.service
-systemctl enable cms-kiosk.service
 
-echo "==> Automatischen Login fuer Benutzer ${RUN_USER} aktivieren (Kiosk-Start ohne Anmeldung)"
-# B4 = "Desktop Autologin": setzt u.a. das systemd-Standardziel auf
-# graphical.target (das cms-kiosk.service braucht, siehe WantedBy=
-# graphical.target in cms-kiosk.service) und richtet lightdm-Autologin fuer
-# den Benutzer ein. NICHT zusaetzlich B2 (Console Autologin) aufrufen - das
-# wuerde das Standardziel wieder auf multi-user.target zuruecksetzen und
-# cms-kiosk.service so nie starten (genau das war der Bug: der Dienst blieb
-# "inactive (dead)", weil graphical.target nie erreicht wurde).
-raspi-config nonint do_boot_behaviour B4
+echo "==> Konsolen-Autologin fuer Benutzer ${RUN_USER} aktivieren (kein Login-Fenster)"
+# B2 = "Console Autologin": Pi bootet auf die Textkonsole (tty1) und meldet
+# den Benutzer automatisch an - kein Displaymanager, keine Passwortabfrage.
+# X/Chromium wird danach ueber .bash_profile (startx) gestartet, siehe unten.
+raspi-config nonint do_boot_behaviour B2
+
+echo "==> Kiosk-Autostart einrichten (X startet automatisch nach Konsolen-Login)"
+cp "${PROVISIONING_DIR}/xinitrc" "/home/${RUN_USER}/.xinitrc"
+chmod +x "/home/${RUN_USER}/.xinitrc"
+touch "/home/${RUN_USER}/.bash_profile"
+if ! grep -q "CMS Player: X automatisch" "/home/${RUN_USER}/.bash_profile" 2>/dev/null; then
+  cat "${PROVISIONING_DIR}/bash_profile-append" >> "/home/${RUN_USER}/.bash_profile"
+fi
+chown "${RUN_USER}:${RUN_USER}" "/home/${RUN_USER}/.xinitrc" "/home/${RUN_USER}/.bash_profile"
 
 chown -R "${RUN_USER}:${RUN_USER}" "${INSTALL_DIR}"
 

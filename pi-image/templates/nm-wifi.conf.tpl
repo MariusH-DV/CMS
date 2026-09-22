@@ -8,6 +8,9 @@ autoconnect-priority=100
 [wifi]
 mode=infrastructure
 ssid={{SSID}}
+# Stromsparmodus abschalten (2 = aus) - fuer einen Dauerbetrieb-Kiosk
+# wichtiger als Energieersparnis, verhindert gelegentliche WLAN-Aussetzer.
+powersave=2
 
 [wifi-security]
 key-mgmt=wpa-psk

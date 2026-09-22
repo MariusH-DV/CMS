@@ -67,7 +67,9 @@ mehr noetig.
   eine echte Internetverbindung, bevor Pakete installiert werden
 - `userdata-append.txt` - Anleitung, um `install.sh` bei Option A automatisch
   per cloud-init starten zu lassen
-- `cms-player.service`, `cms-kiosk.service` - systemd-Dienste fuer Autostart
+- `cms-player.service` - systemd-Dienst fuer den Player-Hintergrunddienst
+- `xinitrc`, `bash_profile-append` - starten den Chromium-Kiosk automatisch
+  nach dem Konsolen-Login (kein Displaymanager, kein Login-Fenster)
 
 ## Geraet zuruecksetzen / neu registrieren
 

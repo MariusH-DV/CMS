@@ -75,8 +75,11 @@ export class ProvisioningService {
     archive.append(renderTemplate('cms-player.service.tpl', vars), {
       name: 'cms-provisioning/cms-player.service',
     });
-    archive.append(renderTemplate('cms-kiosk.service.tpl', vars), {
-      name: 'cms-provisioning/cms-kiosk.service',
+    archive.append(renderTemplate('xinitrc.tpl', vars), {
+      name: 'cms-provisioning/xinitrc',
+    });
+    archive.append(renderTemplate('bash_profile-append.tpl', vars), {
+      name: 'cms-provisioning/bash_profile-append',
     });
     archive.append(renderTemplate('install.sh.tpl', vars), {
       name: 'cms-provisioning/install.sh',

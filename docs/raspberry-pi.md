@@ -64,12 +64,18 @@ sudo reboot
 - **Player-Dienst** (`cms-player.service`): Node.js-Server, der sich beim CMS
   registriert/anmeldet und die aktuelle Playlist bereitstellt (Port 8088,
   intern).
-- **Kiosk-Dienst** (`cms-kiosk.service`): startet Chromium im Vollbild-
-  Kiosk-Modus gegen `http://localhost:8088`, sobald der Player-Dienst bereit
-  ist.
-- **Autologin/Autostart**: beide Dienste sind als systemd-Dienste aktiviert
-  (`enable`), starten also automatisch bei jedem Boot, ohne dass sich jemand
-  am Pi anmelden muss.
+- **Kiosk-Autostart** (`.xinitrc` + `.bash_profile`): der Pi bootet per
+  `raspi-config`-Option "Console Autologin" (B2) direkt auf die Textkonsole
+  und meldet den Benutzer automatisch an - ohne Displaymanager/Login-Fenster.
+  `.bash_profile` startet daraufhin automatisch `startx`, das wiederum
+  `.xinitrc` ausfuehrt: Bildschirmschoner/DPMS werden deaktiviert, der
+  Mauszeiger wird ausgeblendet (`unclutter`) und Chromium startet im
+  Vollbild-Kiosk-Modus gegen `http://localhost:8088`, sobald der Player-Dienst
+  bereit ist. Stuerzt Chromium ab, startet `.xinitrc` es automatisch neu.
+- **Autostart**: `cms-player.service` ist als systemd-Dienst aktiviert
+  (`enable`), startet also automatisch bei jedem Boot. Der Kiosk startet
+  ueber den Konsolen-Autologin (siehe oben), ohne dass sich jemand am Pi
+  anmelden muss.
 - **WLAN**: bei Option A idealerweise bereits durch den Raspberry Pi Imager
   selbst verbunden (siehe oben). `install.sh` bringt zusaetzlich eigene
   WLAN-Konfiguration mit (`wpa_supplicant.conf` und `nm-wifi.conf`, je
@@ -134,7 +140,8 @@ in aller Regel Option A oder B oben.
 | Problem | Loesung |
 |---|---|
 | PIN wird nicht angezeigt | `sudo systemctl status cms-player` pruefen, Log via `journalctl -u cms-player` |
-| Kiosk bleibt schwarz | `sudo systemctl status cms-kiosk`; pruefen ob `cms-player` laeuft (Kiosk wartet darauf) |
+| Login-Fenster (Benutzername/Passwort) statt Kiosk | `cat /boot/firmware/config.txt` egal - pruefen: `sudo raspi-config nonint get_boot_cli` sollte `0` sein (Konsole, kein Desktop); `systemctl is-enabled lightdm` sollte `disabled`/`masked` sein: `sudo systemctl disable --now lightdm`, dann `sudo raspi-config nonint do_boot_behaviour B2 && sudo reboot` |
+| Kiosk bleibt schwarz/startet nicht | Auf dem Pi direkt (Tastatur/Monitor oder SSH): `ps aux \| grep chromium`; pruefen ob `cms-player` laeuft: `sudo systemctl status cms-player` (Kiosk wartet beim Start darauf) |
 | Pi findet CMS nicht | `PUBLIC_API_URL` im Backend pruefen, Netzwerk/WLAN-Verbindung des Pi pruefen |
 | Geraet bleibt "Wartet auf Registrierung" | PIN kann abgelaufen sein (15 Minuten) - Pi neu starten fuer neue PIN |
 | `install.sh` scheint nie zu starten, Pi bootet aber sonst normal durch (per Monitor/SSH erreichbar) | `user-data` auf dem Boot-Laufwerk pruefen: enthaelt sie den `runcmd`-Block aus `userdata-append.txt`? YAML ist einrueckungsempfindlich - bei Unsicherheit den Inhalt der Datei genau mit der Anleitung vergleichen. Per SSH pruefen: `sudo cloud-init status --long` und `sudo journalctl -u cloud-final -b` |
