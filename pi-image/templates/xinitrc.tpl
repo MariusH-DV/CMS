@@ -69,6 +69,7 @@ while true; do
       --kiosk \
       --start-fullscreen \
       ${CHROMIUM_WINDOW_ARGS} \
+      --lang=de \
       --noerrdialogs \
       --disable-infobars \
       --disable-features=Translate,TranslateUI \
