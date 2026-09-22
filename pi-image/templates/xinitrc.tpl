@@ -71,6 +71,7 @@ while true; do
       ${CHROMIUM_WINDOW_ARGS} \
       --noerrdialogs \
       --disable-infobars \
+      --disable-features=Translate,TranslateUI \
       --disable-session-crashed-bubble \
       --disable-pinch \
       --overscroll-history-navigation=0 \
