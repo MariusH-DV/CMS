@@ -58,12 +58,22 @@ export class TenantsService {
     if (!tenant) {
       throw new NotFoundException('Mandant nicht gefunden');
     }
-    return tenant;
+    const usedStorageBytes = this.storage.getMediaFolderSizeBytes(tenant.slug);
+    return { ...tenant, usedStorageBytes };
   }
 
   async update(id: string, dto: UpdateTenantDto) {
     await this.findOne(id);
-    return this.prisma.tenant.update({ where: { id }, data: dto });
+    return this.prisma.tenant.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        active: dto.active,
+        // Grund nur setzen, wenn tatsaechlich deaktiviert wird - bei Reaktivierung
+        // automatisch loeschen, damit kein veralteter Grund haengen bleibt.
+        deactivationReason: dto.active === false ? (dto.deactivationReason ?? null) : dto.active === true ? null : undefined,
+      },
+    });
   }
 
   async remove(id: string) {

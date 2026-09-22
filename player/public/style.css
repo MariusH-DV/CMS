@@ -130,6 +130,22 @@ html, body {
   color: #6b7290;
 }
 
+.pairing-card-warning {
+  border-color: rgba(255, 99, 99, 0.35);
+  box-shadow: 0 24px 80px -20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 99, 99, 0.1);
+}
+
+.pairing-card-warning .pairing-label {
+  color: #ff6b6b;
+}
+
+.pairing-card-warning .pairing-tenant {
+  margin-top: 20px;
+  font-size: 20px;
+  color: #e0a5a5;
+  max-width: 640px;
+}
+
 #player-screen {
   position: relative;
   background: #000;

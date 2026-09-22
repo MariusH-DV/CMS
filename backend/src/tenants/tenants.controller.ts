@@ -7,6 +7,7 @@ import {
   SystemAdminOnly,
   RequirePermissions,
   RequireTenantMembership,
+  AllowWhenTenantInactive,
 } from '../common/decorators/permissions.decorator';
 import { PERMISSIONS } from '../common/permissions.constants';
 
@@ -28,7 +29,10 @@ export class TenantsController {
 
   // Lesend: jedes Mandanten-Mitglied darf die Basisdaten (fuer die
   // Uebersichtsseite) sehen, nicht nur wer explizit TENANT_SETTINGS_MANAGE hat.
+  // Bleibt auch bei deaktiviertem Mandanten erreichbar - genau das ist die
+  // Seite, die den Deaktivierungs-Hinweis anzeigt.
   @RequireTenantMembership()
+  @AllowWhenTenantInactive()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.tenantsService.findOne(id);

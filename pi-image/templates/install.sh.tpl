@@ -84,6 +84,19 @@ if [ "${NETWORK_READY}" -ne 1 ]; then
 fi
 echo "==> Internetverbindung steht."
 
+echo "==> Systemzeit synchronisieren (wichtig fuer Zeitstempel/Logs und fuer die"
+echo "    HTTPS-Zertifikatspruefung bei apt/npm - ein Raspberry Pi hat keine"
+echo "    batteriegepufferte Echtzeituhr und kann nach dem Boot eine falsche"
+echo "    Zeit haben, bis die Synchronisierung abgeschlossen ist)"
+timedatectl set-ntp true 2>/dev/null || true
+for i in $(seq 1 20); do
+  if timedatectl status 2>/dev/null | grep -q "System clock synchronized: yes"; then
+    break
+  fi
+  sleep 1
+done
+echo "==> Aktuelle Systemzeit: $(date)"
+
 echo "==> Systempakete aktualisieren und Abhaengigkeiten installieren"
 # Manche Heimnetze/Router haben eine kaputte/unvollstaendige IPv6-Route -
 # apt versucht dann oft trotzdem zuerst IPv6 und haengt/schlaegt fehl

@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import TenantActiveGuard from './components/TenantActiveGuard';
 import AppShell from './components/AppShell';
 import LoginPage from './pages/LoginPage';
 import DashboardRedirect from './pages/DashboardRedirect';
@@ -29,13 +30,16 @@ export default function App() {
           <Route path="/admin/users" element={<GlobalUsersPage />} />
 
           <Route path="/tenants/:tenantId" element={<TenantOverviewPage />} />
-          <Route path="/tenants/:tenantId/devices" element={<DevicesPage />} />
-          <Route path="/tenants/:tenantId/media" element={<MediaPage />} />
-          <Route path="/tenants/:tenantId/playlists" element={<PlaylistsPage />} />
-          <Route path="/tenants/:tenantId/playlists/:playlistId" element={<PlaylistDetailPage />} />
-          <Route path="/tenants/:tenantId/schedules" element={<SchedulesPage />} />
-          <Route path="/tenants/:tenantId/provisioning" element={<ProvisioningPage />} />
-          <Route path="/tenants/:tenantId/members" element={<MembersPage />} />
+
+          <Route element={<TenantActiveGuard />}>
+            <Route path="/tenants/:tenantId/devices" element={<DevicesPage />} />
+            <Route path="/tenants/:tenantId/media" element={<MediaPage />} />
+            <Route path="/tenants/:tenantId/playlists" element={<PlaylistsPage />} />
+            <Route path="/tenants/:tenantId/playlists/:playlistId" element={<PlaylistDetailPage />} />
+            <Route path="/tenants/:tenantId/schedules" element={<SchedulesPage />} />
+            <Route path="/tenants/:tenantId/provisioning" element={<ProvisioningPage />} />
+            <Route path="/tenants/:tenantId/members" element={<MembersPage />} />
+          </Route>
         </Route>
       </Route>
     </Routes>
