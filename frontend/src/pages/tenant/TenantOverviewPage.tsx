@@ -63,7 +63,7 @@ export default function TenantOverviewPage() {
           <div className="text-sm text-slate-500">Raspberry Pis registrieren und Playlists zuweisen.</div>
         </Link>
         <Link to={`/tenants/${tenantId}/provisioning`} className="card p-5 hover:border-brand-300 transition-colors">
-          <i className="fa-solid fa-raspberry-pi text-brand-500 mb-2 text-xl" />
+          <i className="fa-brands fa-raspberry-pi text-brand-500 mb-2 text-xl" />
           <div className="font-medium text-slate-800">Neuen Pi einrichten</div>
           <div className="text-sm text-slate-500">WLAN festlegen und Bereitstellungspaket herunterladen.</div>
         </Link>

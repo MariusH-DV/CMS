@@ -1,20 +1,32 @@
+import { useEffect, useState } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { PERMISSIONS } from '../api/types';
+import { apiClient } from '../api/client';
 import logo from '../assets/logo.png';
 
 function navClass({ isActive }: { isActive: boolean }) {
-  return `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-    isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100'
+  return `flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
+    isActive
+      ? 'bg-white/70 text-brand-700 shadow-sm backdrop-blur-sm'
+      : 'text-slate-600 hover:bg-white/40 hover:translate-x-0.5'
   }`;
 }
 
 export default function Sidebar() {
   const { user, hasPermission } = useAuth();
   const { tenantId } = useParams();
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiClient
+      .get<{ version?: string }>('/health')
+      .then((res) => setVersion(res.data.version ?? null))
+      .catch(() => setVersion(null));
+  }, []);
 
   return (
-    <aside className="w-64 shrink-0 border-r border-slate-200 bg-white p-4 flex flex-col gap-6">
+    <aside className="w-64 shrink-0 border-r border-white/60 bg-white/50 backdrop-blur-xl p-4 flex flex-col gap-6">
       <div className="flex items-center gap-2 px-2 py-1">
         <img src={logo} alt="Logo" className="h-8 w-8 rounded-md object-cover" />
         <span className="font-semibold text-slate-800">Zentrale CMS</span>
@@ -67,7 +79,7 @@ export default function Sidebar() {
             )}
             {hasPermission(tenantId, PERMISSIONS.DEVICES_MANAGE) && (
               <NavLink to={`/tenants/${tenantId}/provisioning`} className={navClass}>
-                <i className="fa-solid fa-raspberry-pi w-4" /> Pi-Bereitstellung
+                <i className="fa-brands fa-raspberry-pi w-4" /> Pi-Bereitstellung
               </NavLink>
             )}
             {hasPermission(tenantId, PERMISSIONS.USERS_MANAGE) && (
@@ -94,6 +106,10 @@ export default function Sidebar() {
           </nav>
         </div>
       )}
+
+      <div className="mt-auto px-2 pt-3 border-t border-white/50 text-center text-xs text-slate-400">
+        Version {version ?? '...'}
+      </div>
     </aside>
   );
 }
