@@ -60,6 +60,11 @@ fi
 echo "==> Internetverbindung steht."
 
 echo "==> Systempakete aktualisieren und Abhaengigkeiten installieren"
+# Manche Heimnetze/Router haben eine kaputte/unvollstaendige IPv6-Route -
+# apt versucht dann oft trotzdem zuerst IPv6 und haengt/schlaegt fehl
+# ("Unable to connect ... [IP: <ipv6>]"), obwohl IPv4 einwandfrei geht.
+# Deshalb apt fest auf IPv4 zwingen.
+echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
 apt-get update -y
 apt-get install -y --no-install-recommends \
   nodejs npm chromium-browser unclutter xdotool xserver-xorg xinit x11-xserver-utils curl
