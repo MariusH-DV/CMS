@@ -4,11 +4,13 @@
     empty: document.getElementById('empty-screen'),
     error: document.getElementById('error-screen'),
     player: document.getElementById('player-screen'),
+    deactivated: document.getElementById('deactivated-screen'),
   };
   const pinEl = document.getElementById('pin');
   const pairingTenantEl = document.getElementById('pairing-tenant');
   const emptyTenantEl = document.getElementById('empty-tenant');
   const errorMessageEl = document.getElementById('error-message');
+  const deactivatedReasonEl = document.getElementById('deactivated-reason');
   const imgEl = document.getElementById('media-image');
   const videoEl = document.getElementById('media-video');
 
@@ -107,6 +109,12 @@
     if (status.lastError) {
       errorMessageEl.textContent = status.lastError;
       showScreen('error');
+      return;
+    }
+
+    if (status.playlist && status.playlist.source === 'deactivated') {
+      deactivatedReasonEl.textContent = status.playlist.deactivationReason || '';
+      showScreen('deactivated');
       return;
     }
 

@@ -23,3 +23,13 @@ export const TENANT_MEMBERSHIP_KEY = 'tenantMembership';
  * Uebersichtsseite).
  */
 export const RequireTenantMembership = () => SetMetadata(TENANT_MEMBERSHIP_KEY, true);
+
+export const ALLOW_WHEN_TENANT_INACTIVE_KEY = 'allowWhenTenantInactive';
+
+/**
+ * Erlaubt den Zugriff auch dann, wenn der Mandant deaktiviert wurde - fuer den
+ * einen Endpunkt, der die Uebersichtsseite/das "Dashboard" speist (dort wird
+ * der Deaktivierungsgrund angezeigt). Alle anderen Mandanten-Endpunkte sind
+ * fuer deaktivierte Mandanten gesperrt (ausser fuer System-Admins).
+ */
+export const AllowWhenTenantInactive = () => SetMetadata(ALLOW_WHEN_TENANT_INACTIVE_KEY, true);

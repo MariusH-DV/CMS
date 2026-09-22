@@ -18,6 +18,9 @@ export default function Sidebar() {
   const { tenantId } = useParams();
   const [version, setVersion] = useState<string | null>(null);
 
+  const currentMembership = user?.memberships.find((m) => m.tenantId === tenantId);
+  const tenantActive = currentMembership?.tenant?.active ?? true;
+
   useEffect(() => {
     apiClient
       .get<{ version?: string }>('/health')
@@ -57,32 +60,32 @@ export default function Sidebar() {
             <NavLink to={`/tenants/${tenantId}`} end className={navClass}>
               <i className="fa-solid fa-gauge w-4" /> Uebersicht
             </NavLink>
-            {hasPermission(tenantId, PERMISSIONS.DEVICES_MANAGE) && (
+            {tenantActive && hasPermission(tenantId, PERMISSIONS.DEVICES_MANAGE) && (
               <NavLink to={`/tenants/${tenantId}/devices`} className={navClass}>
                 <i className="fa-solid fa-display w-4" /> Geraete
               </NavLink>
             )}
-            {hasPermission(tenantId, PERMISSIONS.MEDIA_MANAGE) && (
+            {tenantActive && hasPermission(tenantId, PERMISSIONS.MEDIA_MANAGE) && (
               <NavLink to={`/tenants/${tenantId}/media`} className={navClass}>
                 <i className="fa-solid fa-photo-film w-4" /> Medien
               </NavLink>
             )}
-            {hasPermission(tenantId, PERMISSIONS.PLAYLISTS_MANAGE) && (
+            {tenantActive && hasPermission(tenantId, PERMISSIONS.PLAYLISTS_MANAGE) && (
               <NavLink to={`/tenants/${tenantId}/playlists`} className={navClass}>
                 <i className="fa-solid fa-list-ol w-4" /> Playlists
               </NavLink>
             )}
-            {hasPermission(tenantId, PERMISSIONS.SCHEDULES_MANAGE) && (
+            {tenantActive && hasPermission(tenantId, PERMISSIONS.SCHEDULES_MANAGE) && (
               <NavLink to={`/tenants/${tenantId}/schedules`} className={navClass}>
                 <i className="fa-solid fa-calendar-days w-4" /> Zeitplaene
               </NavLink>
             )}
-            {hasPermission(tenantId, PERMISSIONS.DEVICES_MANAGE) && (
+            {tenantActive && hasPermission(tenantId, PERMISSIONS.DEVICES_MANAGE) && (
               <NavLink to={`/tenants/${tenantId}/provisioning`} className={navClass}>
                 <i className="fa-brands fa-raspberry-pi w-4" /> Pi-Bereitstellung
               </NavLink>
             )}
-            {hasPermission(tenantId, PERMISSIONS.USERS_MANAGE) && (
+            {tenantActive && hasPermission(tenantId, PERMISSIONS.USERS_MANAGE) && (
               <NavLink to={`/tenants/${tenantId}/members`} className={navClass}>
                 <i className="fa-solid fa-user-group w-4" /> Benutzer &amp; Rechte
               </NavLink>

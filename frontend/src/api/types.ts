@@ -34,6 +34,8 @@ export interface Tenant {
   slug: string;
   storagePath: string;
   active: boolean;
+  deactivationReason?: string | null;
+  usedStorageBytes?: number;
   createdAt: string;
   license?: License | null;
   _count?: { devices: number; memberships: number };

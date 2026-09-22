@@ -13,6 +13,8 @@ export default function TenantDetailAdminPage() {
   const [validUntil, setValidUntil] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showDeactivateForm, setShowDeactivateForm] = useState(false);
+  const [deactivationReason, setDeactivationReason] = useState('');
 
   function load() {
     apiClient.get<Tenant>(`/tenants/${tenantId}`).then((res) => {
@@ -48,7 +50,19 @@ export default function TenantDetailAdminPage() {
 
   async function toggleActive() {
     if (!tenant) return;
-    await apiClient.patch(`/tenants/${tenantId}`, { active: !tenant.active });
+    if (tenant.active) {
+      setShowDeactivateForm(true);
+      return;
+    }
+    await apiClient.patch(`/tenants/${tenantId}`, { active: true });
+    load();
+  }
+
+  async function handleDeactivate(e: FormEvent) {
+    e.preventDefault();
+    await apiClient.patch(`/tenants/${tenantId}`, { active: false, deactivationReason });
+    setShowDeactivateForm(false);
+    setDeactivationReason('');
     load();
   }
 
@@ -81,6 +95,38 @@ export default function TenantDetailAdminPage() {
           </button>
         </div>
       </div>
+
+      {!tenant.active && tenant.deactivationReason && (
+        <div className="card p-4 border-red-300 bg-red-50/70 text-sm text-red-700">
+          <span className="font-medium">Deaktivierungsgrund:</span> {tenant.deactivationReason}
+        </div>
+      )}
+
+      {showDeactivateForm && (
+        <form onSubmit={handleDeactivate} className="card p-5 flex flex-col gap-3 border-red-300">
+          <h2 className="font-semibold text-slate-700">
+            <i className="fa-solid fa-power-off mr-2 text-red-500" /> Mandant deaktivieren
+          </h2>
+          <div>
+            <label className="label">Grund (wird dem Kunden im Dashboard angezeigt)</label>
+            <textarea
+              className="input"
+              rows={3}
+              value={deactivationReason}
+              onChange={(e) => setDeactivationReason(e.target.value)}
+              placeholder="z.B. Offene Rechnung, Vertragsende, ..."
+            />
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" className="btn-danger">
+              Jetzt deaktivieren
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => setShowDeactivateForm(false)}>
+              Abbrechen
+            </button>
+          </div>
+        </form>
+      )}
 
       <form onSubmit={handleSaveLicense} className="card p-5 flex flex-col gap-4">
         <h2 className="font-semibold text-slate-700">

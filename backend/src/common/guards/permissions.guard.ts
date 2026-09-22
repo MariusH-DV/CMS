@@ -1,11 +1,13 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
+  ALLOW_WHEN_TENANT_INACTIVE_KEY,
   PERMISSIONS_KEY,
   SYSTEM_ADMIN_ONLY_KEY,
   TENANT_MEMBERSHIP_KEY,
 } from '../decorators/permissions.decorator';
 import { AuthenticatedUser } from '../interfaces/jwt-payload.interface';
+import { PrismaService } from '../../prisma/prisma.service';
 
 /**
  * Prueft System-Admin- / Mandant-Admin- / granulare Berechtigungen.
@@ -13,9 +15,12 @@ import { AuthenticatedUser } from '../interfaces/jwt-payload.interface';
  */
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private prisma: PrismaService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const systemAdminOnly = this.reflector.getAllAndOverride<boolean>(SYSTEM_ADMIN_ONLY_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -28,6 +33,10 @@ export class PermissionsGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
+    const allowWhenTenantInactive = this.reflector.getAllAndOverride<boolean>(
+      ALLOW_WHEN_TENANT_INACTIVE_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (
       !systemAdminOnly &&
@@ -59,6 +68,23 @@ export class PermissionsGuard implements CanActivate {
     const membership = user.memberships?.find((m) => m.tenantId === tenantId);
     if (!membership) {
       throw new ForbiddenException('Kein Zugriff auf diesen Mandanten');
+    }
+
+    // Deaktivierte Mandanten: Nutzer koennen sich weiterhin anmelden und die
+    // Uebersichtsseite (dort per @AllowWhenTenantInactive markiert) sehen,
+    // aber sonst ist alles gesperrt - unabhaengig von Rolle/Berechtigung.
+    if (!allowWhenTenantInactive) {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { active: true, deactivationReason: true },
+      });
+      if (tenant && !tenant.active) {
+        throw new ForbiddenException({
+          message: 'Dieser Mandant wurde deaktiviert',
+          code: 'TENANT_DEACTIVATED',
+          reason: tenant.deactivationReason,
+        });
+      }
     }
 
     if (membership.role === 'TENANT_ADMIN' || requireTenantMembership) {

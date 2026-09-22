@@ -9,4 +9,8 @@ export class UpdateTenantDto {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
+
+  @IsOptional()
+  @IsString()
+  deactivationReason?: string;
 }

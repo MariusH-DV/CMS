@@ -180,6 +180,17 @@ export class DevicesService {
 
   async getPlaylistForDevice(apiToken: string) {
     const device = await this.authenticateDevice(apiToken);
+
+    if (device.tenantId) {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: device.tenantId },
+        select: { active: true, deactivationReason: true },
+      });
+      if (tenant && !tenant.active) {
+        return { source: 'deactivated', playlist: null, deactivationReason: tenant.deactivationReason };
+      }
+    }
+
     const now = new Date();
 
     const schedules = await this.prisma.schedule.findMany({
