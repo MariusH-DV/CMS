@@ -6,6 +6,16 @@
 # Zeitpunkt bereits Netzwerk vorhanden.
 set -e
 
+# Fortschritt zusaetzlich auf dem angeschlossenen Bildschirm anzeigen - vor
+# allem bei Option A (automatischer Start ueber cloud-init "runcmd") wichtig:
+# dort landet die Ausgabe sonst nur in der cloud-init-Logdatei, der Monitor
+# bleibt bis zum Ende komplett schwarz. tee schreibt zusaetzlich weiterhin
+# ganz normal in die eigentliche Log-Ausgabe (bei Option B also weiterhin auch
+# im SSH-Terminal sichtbar).
+if [ -w /dev/tty1 ]; then
+  exec > >(tee -a /dev/tty1) 2>&1
+fi
+
 PROVISIONING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="/opt/cms-player"
 # Ermittelt den tatsaechlichen Benutzer automatisch, damit die Installation
