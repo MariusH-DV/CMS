@@ -136,6 +136,26 @@ if ! grep -q "CMS Player: X automatisch" "/home/${RUN_USER}/.bash_profile" 2>/de
 fi
 chown "${RUN_USER}:${RUN_USER}" "/home/${RUN_USER}/.xinitrc" "/home/${RUN_USER}/.bash_profile"
 
+echo "==> Chromium-Uebersetzungsvorschlag ueber Enterprise-Policy abschalten"
+# Kommandozeilen-Flags wie --disable-features=Translate/-TranslateUI sind je
+# nach Chromium-Version inkonsistent benannt und teils wirkungslos (siehe
+# https://issues.chromium.org/issues/41347677). Die offiziell dokumentierte,
+# stabile Methode ist eine Chrome-Enterprise-Policy-Datei - die respektiert
+# Chromium zuverlaessig unabhaengig von der Version. Wird an beide moeglichen
+# Policy-Pfade geschrieben (Paketname "chromium" vs. "chromium-browser"
+# unterscheidet sich je nach Raspberry Pi OS Version).
+for policy_dir in /etc/chromium/policies/managed /etc/chromium-browser/policies/managed; do
+  mkdir -p "${policy_dir}"
+  cat > "${policy_dir}/cms-kiosk-policy.json" <<'POLICY_EOF'
+{
+  "TranslateEnabled": false,
+  "DefaultBrowserSettingEnabled": false,
+  "SyncDisabled": true,
+  "BackgroundModeEnabled": false
+}
+POLICY_EOF
+done
+
 chown -R "${RUN_USER}:${RUN_USER}" "${INSTALL_DIR}"
 
 echo "==> Installation abgeschlossen. Der Raspberry Pi startet den CMS Player automatisch nach dem naechsten Neustart."
