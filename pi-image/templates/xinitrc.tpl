@@ -78,6 +78,9 @@ while true; do
       --overscroll-history-navigation=0 \
       --check-for-update-interval=31536000 \
       --autoplay-policy=no-user-gesture-required \
+      --disable-background-networking \
+      --disable-sync \
+      --disable-component-update \
       http://localhost:8088 &
   fi
   sleep 5
