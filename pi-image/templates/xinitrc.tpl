@@ -9,18 +9,29 @@ xset s noblank
 xset -dpms
 
 # Raspberry Pi 4/400/5 haben zwei HDMI-Ausgaenge - der Grafiktreiber legt
-# dafuer einen virtuellen Bildschirm ueber BEIDE Ausgaenge nebeneinander an,
-# auch wenn nur einer tatsaechlich angeschlossen ist. Ohne diesen Schritt
-# rendert Chromium auf die gesamte (unsichtbare) virtuelle Breite - auf dem
-# tatsaechlich angeschlossenen Monitor ist dann nur eine Haelfte zu sehen.
-# Deshalb: alle laut xrandr nicht angeschlossenen Ausgaenge abschalten und
-# den tatsaechlich angeschlossenen auf seine native Aufloesung setzen.
+# dafuer teils einen virtuellen Bildschirm ueber BEIDE Ausgaenge nebeneinander
+# an, auch wenn nur einer tatsaechlich angeschlossen ist. Deshalb: alle laut
+# xrandr nicht angeschlossenen Ausgaenge abschalten und den tatsaechlich
+# angeschlossenen auf seine native Aufloesung setzen.
 for output in $(xrandr --query 2>/dev/null | awk '/ disconnected/{print $1}'); do
   xrandr --output "${output}" --off 2>/dev/null || true
 done
 CONNECTED_OUTPUT="$(xrandr --query 2>/dev/null | awk '/ connected/{print $1; exit}')"
 if [ -n "${CONNECTED_OUTPUT}" ]; then
   xrandr --output "${CONNECTED_OUTPUT}" --auto --primary 2>/dev/null || true
+fi
+
+# Aufloesung des aktiven Ausgangs ermitteln, um sie unten explizit an
+# Chromium zu uebergeben. Wichtig, weil hier bewusst KEIN Window-Manager
+# laeuft (Einfachheit/Robustheit) - ohne WM kann Chromiums "--kiosk" die
+# Vollbild-Anfrage aber nicht immer selbst durchsetzen und das Fenster
+# bleibt in seiner Standardgroesse in einer Bildschirmecke stehen (der Rest
+# zeigt dann einfach den leeren schwarzen X-Hintergrund).
+GEOMETRY="$(xrandr --query 2>/dev/null | grep ' connected' | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n1)"
+CHROMIUM_WINDOW_ARGS=""
+if [ -n "${GEOMETRY}" ]; then
+  SCREEN_RES="${GEOMETRY%%+*}"
+  CHROMIUM_WINDOW_ARGS="--window-size=${SCREEN_RES%%x*},${SCREEN_RES##*x} --window-position=0,0"
 fi
 
 # Mauszeiger nach kurzer Inaktivitaet ausblenden (kosmetisch fuer den Kiosk).
@@ -45,6 +56,8 @@ CHROMIUM_BIN="$(command -v chromium-browser || command -v chromium || echo chrom
 while true; do
   "${CHROMIUM_BIN}" \
     --kiosk \
+    --start-fullscreen \
+    ${CHROMIUM_WINDOW_ARGS} \
     --noerrdialogs \
     --disable-infobars \
     --disable-session-crashed-bubble \
