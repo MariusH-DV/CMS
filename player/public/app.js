@@ -79,11 +79,26 @@
     showCurrentItem();
   }
 
+  let lastRenderedPin = null;
+
+  function renderPin(pin) {
+    if (pin === lastRenderedPin) return;
+    lastRenderedPin = pin;
+    pinEl.innerHTML = '';
+    (pin || '------').split('').forEach((digit, i) => {
+      const span = document.createElement('span');
+      span.textContent = digit;
+      span.className = 'pin-digit';
+      span.style.animationDelay = `${i * 0.08}s`;
+      pinEl.appendChild(span);
+    });
+  }
+
   function render(status) {
     lastStatus = status;
 
     if (status.mode === 'pairing') {
-      pinEl.textContent = status.pin ? status.pin.split('').join(' ') : '------';
+      renderPin(status.pin);
       pairingTenantEl.textContent = status.tenantName || '';
       showScreen('pairing');
       return;

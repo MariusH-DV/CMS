@@ -31,8 +31,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm card p-8">
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="w-full max-w-sm card p-8 animate-pop-in">
         <div className="flex items-center gap-2 justify-center mb-6">
           <img src={logo} alt="Logo" className="h-10 w-10 rounded-lg object-cover" />
           <span className="text-xl font-semibold text-slate-800">Zentrale CMS</span>
@@ -60,11 +60,15 @@ export default function LoginPage() {
             />
           </div>
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <div className="text-sm text-red-600 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-xl px-3 py-2 animate-fade-in-up">
               {error}
             </div>
           )}
-          <button type="submit" disabled={loading} className="btn-primary justify-center mt-2">
+          <button
+            type="submit"
+            disabled={loading}
+            className={`btn-primary justify-center mt-2 ${loading ? 'animate-pulse-glow' : ''}`}
+          >
             {loading ? <i className="fa-solid fa-circle-notch fa-spin" /> : <i className="fa-solid fa-right-to-bracket" />}
             Anmelden
           </button>

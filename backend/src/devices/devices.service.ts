@@ -142,22 +142,55 @@ export class DevicesService {
     });
   }
 
+  /**
+   * Prueft, ob ein Zeitplan JETZT aktiv sein soll. "recurrence" bestimmt, wie
+   * die Uhrzeit-/Datumsangaben aus startAt/endAt interpretiert werden:
+   * - ONCE: klassischer absoluter Datumsbereich (startAt..endAt)
+   * - DAILY: startAt/endAt geben nur die taegliche Uhrzeit vor (ab dem Datum
+   *   von startAt), wiederholt sich jeden Tag
+   * - WEEKLY: wie DAILY, zusaetzlich nur am gleichen Wochentag wie startAt
+   */
+  private isScheduleActive(
+    schedule: { startAt: Date; endAt: Date | null; recurrence: string },
+    now: Date,
+  ): boolean {
+    if (schedule.startAt > now) {
+      return false;
+    }
+
+    if (schedule.recurrence === 'ONCE') {
+      return !schedule.endAt || schedule.endAt >= now;
+    }
+
+    const startMinutes = schedule.startAt.getHours() * 60 + schedule.startAt.getMinutes();
+    const endMinutes = schedule.endAt
+      ? schedule.endAt.getHours() * 60 + schedule.endAt.getMinutes()
+      : 24 * 60;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    if (nowMinutes < startMinutes || nowMinutes >= endMinutes) {
+      return false;
+    }
+
+    if (schedule.recurrence === 'WEEKLY') {
+      return now.getDay() === schedule.startAt.getDay();
+    }
+
+    return true; // DAILY
+  }
+
   async getPlaylistForDevice(apiToken: string) {
     const device = await this.authenticateDevice(apiToken);
     const now = new Date();
 
-    const schedule = await this.prisma.schedule.findFirst({
-      where: {
-        deviceId: device.id,
-        startAt: { lte: now },
-        OR: [{ endAt: null }, { endAt: { gte: now } }],
-      },
+    const schedules = await this.prisma.schedule.findMany({
+      where: { deviceId: device.id },
       orderBy: [{ priority: 'desc' }, { startAt: 'desc' }],
       include: { playlist: { include: { items: { include: { mediaAsset: true }, orderBy: { order: 'asc' } } } } },
     });
+    const activeSchedule = schedules.find((s) => this.isScheduleActive(s, now));
 
-    if (schedule) {
-      return { source: 'schedule', playlist: schedule.playlist };
+    if (activeSchedule) {
+      return { source: 'schedule', playlist: activeSchedule.playlist };
     }
 
     if (device.playlistId) {

@@ -1,15 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { apiClient } from '../../api/client';
+import { apiClient, apiErrorMessage } from '../../api/client';
 import { Tenant } from '../../api/types';
 
 export default function TenantOverviewPage() {
   const { tenantId } = useParams<{ tenantId: string }>();
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiClient.get<Tenant>(`/tenants/${tenantId}`).then((res) => setTenant(res.data));
+    setError(null);
+    apiClient
+      .get<Tenant>(`/tenants/${tenantId}`)
+      .then((res) => setTenant(res.data))
+      .catch((err) => setError(apiErrorMessage(err)));
   }, [tenantId]);
+
+  if (error) {
+    return (
+      <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+    );
+  }
 
   if (!tenant) {
     return <i className="fa-solid fa-circle-notch fa-spin text-slate-400" />;
@@ -52,7 +63,7 @@ export default function TenantOverviewPage() {
           <div className="text-sm text-slate-500">Raspberry Pis registrieren und Playlists zuweisen.</div>
         </Link>
         <Link to={`/tenants/${tenantId}/provisioning`} className="card p-5 hover:border-brand-300 transition-colors">
-          <i className="fa-solid fa-raspberry-pi text-brand-500 mb-2 text-xl" />
+          <i className="fa-brands fa-raspberry-pi text-brand-500 mb-2 text-xl" />
           <div className="font-medium text-slate-800">Neuen Pi einrichten</div>
           <div className="text-sm text-slate-500">WLAN festlegen und Bereitstellungspaket herunterladen.</div>
         </Link>
