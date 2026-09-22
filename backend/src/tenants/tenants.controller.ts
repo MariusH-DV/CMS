@@ -3,7 +3,11 @@ import { TenantsService } from './tenants.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpsertLicenseDto } from './dto/upsert-license.dto';
-import { SystemAdminOnly, RequirePermissions } from '../common/decorators/permissions.decorator';
+import {
+  SystemAdminOnly,
+  RequirePermissions,
+  RequireTenantMembership,
+} from '../common/decorators/permissions.decorator';
 import { PERMISSIONS } from '../common/permissions.constants';
 
 @Controller('tenants')
@@ -22,7 +26,9 @@ export class TenantsController {
     return this.tenantsService.findAll();
   }
 
-  @RequirePermissions(PERMISSIONS.TENANT_SETTINGS_MANAGE)
+  // Lesend: jedes Mandanten-Mitglied darf die Basisdaten (fuer die
+  // Uebersichtsseite) sehen, nicht nur wer explizit TENANT_SETTINGS_MANAGE hat.
+  @RequireTenantMembership()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.tenantsService.findOne(id);

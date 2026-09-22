@@ -1,6 +1,10 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PERMISSIONS_KEY, SYSTEM_ADMIN_ONLY_KEY } from '../decorators/permissions.decorator';
+import {
+  PERMISSIONS_KEY,
+  SYSTEM_ADMIN_ONLY_KEY,
+  TENANT_MEMBERSHIP_KEY,
+} from '../decorators/permissions.decorator';
 import { AuthenticatedUser } from '../interfaces/jwt-payload.interface';
 
 /**
@@ -20,8 +24,16 @@ export class PermissionsGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
+    const requireTenantMembership = this.reflector.getAllAndOverride<boolean>(TENANT_MEMBERSHIP_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
-    if (!systemAdminOnly && (!requiredPermissions || requiredPermissions.length === 0)) {
+    if (
+      !systemAdminOnly &&
+      !requireTenantMembership &&
+      (!requiredPermissions || requiredPermissions.length === 0)
+    ) {
       return true;
     }
 
@@ -49,7 +61,7 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('Kein Zugriff auf diesen Mandanten');
     }
 
-    if (membership.role === 'TENANT_ADMIN') {
+    if (membership.role === 'TENANT_ADMIN' || requireTenantMembership) {
       return true;
     }
 
