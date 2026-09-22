@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
+import { UpdateScheduleDto } from './dto/update-schedule.dto';
 
 @Injectable()
 export class SchedulesService {
@@ -25,6 +26,24 @@ export class SchedulesService {
       where: { tenantId },
       include: { playlist: true, device: true },
       orderBy: { startAt: 'asc' },
+    });
+  }
+
+  async update(tenantId: string, id: string, dto: UpdateScheduleDto) {
+    const schedule = await this.prisma.schedule.findFirst({ where: { id, tenantId } });
+    if (!schedule) {
+      throw new NotFoundException('Zeitplan nicht gefunden');
+    }
+    return this.prisma.schedule.update({
+      where: { id },
+      data: {
+        playlistId: dto.playlistId,
+        startAt: dto.startAt ? new Date(dto.startAt) : undefined,
+        endAt: dto.endAt !== undefined ? (dto.endAt ? new Date(dto.endAt) : null) : undefined,
+        recurrence: dto.recurrence,
+        priority: dto.priority,
+      },
+      include: { playlist: true, device: true },
     });
   }
 
