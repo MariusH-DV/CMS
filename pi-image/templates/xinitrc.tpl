@@ -8,6 +8,21 @@ xset s off
 xset s noblank
 xset -dpms
 
+# Raspberry Pi 4/400/5 haben zwei HDMI-Ausgaenge - der Grafiktreiber legt
+# dafuer einen virtuellen Bildschirm ueber BEIDE Ausgaenge nebeneinander an,
+# auch wenn nur einer tatsaechlich angeschlossen ist. Ohne diesen Schritt
+# rendert Chromium auf die gesamte (unsichtbare) virtuelle Breite - auf dem
+# tatsaechlich angeschlossenen Monitor ist dann nur eine Haelfte zu sehen.
+# Deshalb: alle laut xrandr nicht angeschlossenen Ausgaenge abschalten und
+# den tatsaechlich angeschlossenen auf seine native Aufloesung setzen.
+for output in $(xrandr --query 2>/dev/null | awk '/ disconnected/{print $1}'); do
+  xrandr --output "${output}" --off 2>/dev/null || true
+done
+CONNECTED_OUTPUT="$(xrandr --query 2>/dev/null | awk '/ connected/{print $1; exit}')"
+if [ -n "${CONNECTED_OUTPUT}" ]; then
+  xrandr --output "${CONNECTED_OUTPUT}" --auto --primary 2>/dev/null || true
+fi
+
 # Mauszeiger nach kurzer Inaktivitaet ausblenden (kosmetisch fuer den Kiosk).
 unclutter -idle 0.5 -root &
 
