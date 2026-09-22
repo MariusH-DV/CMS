@@ -52,6 +52,21 @@ if [ -f "${PROVISIONING_DIR}/wpa_supplicant.conf" ] || [ -f "${PROVISIONING_DIR}
   fi
 fi
 
+# WLAN-Stromsparmodus abschalten - unabhaengig davon, WIE die WLAN-Verbindung
+# eingerichtet wurde (auch wenn sie bereits vom Raspberry Pi Imager selbst
+# angelegt wurde, nicht nur bei einem eigenen nm-wifi.conf-Profil oben).
+# Stromsparen kann den Durchsatz drastisch einbrechen lassen (im Extremfall
+# auf wenige kB/s), was gerade den Paketdownload weiter unten unnoetig
+# ausbremst.
+if command -v nmcli >/dev/null 2>&1 && systemctl is-active --quiet NetworkManager 2>/dev/null; then
+  ACTIVE_WIFI_CONN="$(nmcli -t -f NAME,TYPE connection show --active 2>/dev/null | awk -F: '$2=="802-11-wireless"{print $1; exit}')"
+  if [ -n "${ACTIVE_WIFI_CONN}" ]; then
+    nmcli connection modify "${ACTIVE_WIFI_CONN}" 802-11-wireless.powersave 2 || true
+    nmcli connection up "${ACTIVE_WIFI_CONN}" || true
+  fi
+fi
+iw dev wlan0 set power_save off 2>/dev/null || true
+
 echo "==> Warte auf Internetverbindung (bis zu 7,5 Minuten)..."
 NETWORK_READY=0
 for i in $(seq 1 90); do
