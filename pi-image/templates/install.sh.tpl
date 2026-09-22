@@ -92,7 +92,8 @@ echo "==> Systempakete aktualisieren und Abhaengigkeiten installieren"
 echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
 apt-get update -y
 apt-get install -y --no-install-recommends \
-  nodejs npm chromium-browser unclutter xdotool xserver-xorg xinit x11-xserver-utils curl
+  nodejs npm chromium-browser unclutter xdotool xserver-xorg xinit x11-xserver-utils curl \
+  plymouth plymouth-themes feh
 
 # Falls ein Displaymanager (z.B. lightdm) aus einem "Desktop"-Basisimage
 # vorhanden ist: deaktivieren. Wir starten X selbst per .bash_profile/startx
@@ -135,6 +136,31 @@ if ! grep -q "CMS Player: X automatisch" "/home/${RUN_USER}/.bash_profile" 2>/de
   cat "${PROVISIONING_DIR}/bash_profile-append" >> "/home/${RUN_USER}/.bash_profile"
 fi
 chown "${RUN_USER}:${RUN_USER}" "/home/${RUN_USER}/.xinitrc" "/home/${RUN_USER}/.bash_profile"
+
+echo "==> Eigenes Logo als Boot-Splash einrichten (Plymouth)"
+# Ersetzt den Standard-Bootbildschirm durch ein eigenes, zentriertes Logo auf
+# dunklem Hintergrund (gleiche Farbe wie der Player, fuer einen nahtlosen
+# Uebergang). Eigenes minimales Theme statt das mitgelieferte "pix"-Theme zu
+# veraendern - so sind wir nicht auf dessen interne Bildmasse/Skriptlogik
+# angewiesen.
+mkdir -p /usr/share/plymouth/themes/cms-kiosk
+cp "${PROVISIONING_DIR}/cms-kiosk.plymouth" /usr/share/plymouth/themes/cms-kiosk/cms-kiosk.plymouth
+cp "${PROVISIONING_DIR}/cms-kiosk.script" /usr/share/plymouth/themes/cms-kiosk/cms-kiosk.script
+cp "${PROVISIONING_DIR}/logo.png" /usr/share/plymouth/themes/cms-kiosk/logo.png
+if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+  plymouth-set-default-theme -R cms-kiosk 2>/dev/null \
+    || (plymouth-set-default-theme cms-kiosk && update-initramfs -u) \
+    || true
+fi
+raspi-config nonint do_boot_splash 0 2>/dev/null || true
+
+# Logo zusaetzlich fuer .xinitrc bereitstellen: Plymouth wird kurz vor Erreichen
+# von multi-user.target beendet, X/Chromium brauchen danach aber noch ein paar
+# Sekunden (Warten auf cms-player, Chromium-Start) - in dieser Luecke zeigt
+# .xinitrc das gleiche Logo weiter an, damit der Bildschirm nicht kurz
+# schwarz wird.
+mkdir -p "${INSTALL_DIR}/branding"
+cp "${PROVISIONING_DIR}/logo.png" "${INSTALL_DIR}/branding/logo.png"
 
 echo "==> Chromium-Uebersetzungsvorschlag ueber Enterprise-Policy abschalten"
 # Kommandozeilen-Flags wie --disable-features=Translate/-TranslateUI sind je

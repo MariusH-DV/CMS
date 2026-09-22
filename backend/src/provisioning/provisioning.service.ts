@@ -91,6 +91,15 @@ export class ProvisioningService {
     archive.append(renderTemplate('userdata-append.txt.tpl', vars), {
       name: 'cms-provisioning/userdata-append.txt',
     });
+    archive.append(renderTemplate('cms-kiosk.plymouth.tpl', vars), {
+      name: 'cms-provisioning/cms-kiosk.plymouth',
+    });
+    archive.append(renderTemplate('cms-kiosk.script.tpl', vars), {
+      name: 'cms-provisioning/cms-kiosk.script',
+    });
+    archive.file(path.join(TEMPLATES_DIR, 'logo.png'), {
+      name: 'cms-provisioning/logo.png',
+    });
 
     archive.directory(PLAYER_DIR, 'cms-provisioning/player', (entry) => {
       if (entry.name.startsWith('node_modules') || entry.name.startsWith('dist')) {
