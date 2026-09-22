@@ -81,6 +81,8 @@ while true; do
       --disable-background-networking \
       --disable-sync \
       --disable-component-update \
+      --disable-extensions \
+      --disable-component-extensions-with-background-pages \
       http://localhost:8088 &
   fi
   sleep 5
