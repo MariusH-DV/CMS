@@ -37,11 +37,24 @@ fi
 # Mauszeiger nach kurzer Inaktivitaet ausblenden (kosmetisch fuer den Kiosk).
 unclutter -idle 0.5 -root &
 
+# Eigenes Logo weiter anzeigen, bis Chromium bereit ist: Plymouth (Boot-Splash
+# mit dem gleichen Logo) wird schon kurz vor diesem Punkt beendet, Chromium
+# braucht aber noch ein paar Sekunden (Warten auf cms-player, Browserstart) -
+# ohne das hier waere der Bildschirm in dieser Luecke kurz schwarz.
+LOGO_PATH="/opt/cms-player/branding/logo.png"
+if [ -f "${LOGO_PATH}" ] && command -v feh >/dev/null 2>&1; then
+  feh --fullscreen --image-bg "#0B1020" "${LOGO_PATH}" &
+  FEH_PID=$!
+fi
+
 # Warten, bis der lokale CMS-Player-Dienst (Backend-Verbindung, Playlist)
 # erreichbar ist, bevor Chromium startet.
 until curl -s http://localhost:8088/health > /dev/null 2>&1; do
   sleep 1
 done
+
+# Logo-Anzeige beenden, bevor Chromium uebernimmt.
+[ -n "${FEH_PID}" ] && kill "${FEH_PID}" 2>/dev/null || true
 
 # Der Name des Chromium-Binaries hat sich zwischen Raspberry-Pi-OS-Versionen
 # geaendert: auf aelteren Versionen ist "chromium-browser" das echte Programm,
@@ -78,6 +91,11 @@ while true; do
       --overscroll-history-navigation=0 \
       --check-for-update-interval=31536000 \
       --autoplay-policy=no-user-gesture-required \
+      --disable-background-networking \
+      --disable-sync \
+      --disable-component-update \
+      --disable-extensions \
+      --disable-component-extensions-with-background-pages \
       http://localhost:8088 &
   fi
   sleep 5

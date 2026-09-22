@@ -68,6 +68,8 @@ mehr noetig.
 - `userdata-append.txt` - Anleitung, um `install.sh` bei Option A automatisch
   per cloud-init starten zu lassen
 - `cms-player.service` - systemd-Dienst fuer den Player-Hintergrunddienst
+- `logo.png`, `cms-kiosk.plymouth`, `cms-kiosk.script` - eigenes Boot-Logo
+  (Plymouth-Theme), ersetzt den Standard-Bootbildschirm
 - `xinitrc`, `bash_profile-append` - starten den Chromium-Kiosk automatisch
   nach dem Konsolen-Login (kein Displaymanager, kein Login-Fenster)
 
