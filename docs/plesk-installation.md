@@ -123,6 +123,8 @@ Damit `https://cms.deine-domain.de` die Anwendung ausliefert:
    - auch fuer HTTPS) folgendes eintragen:
 
    ```nginx
+   client_max_body_size 1024m;
+
    location / {
        proxy_pass http://127.0.0.1:5173;
        proxy_set_header Host $host;
@@ -131,6 +133,11 @@ Damit `https://cms.deine-domain.de` die Anwendung ausliefert:
        proxy_set_header X-Forwarded-Proto $scheme;
    }
    ```
+
+   `client_max_body_size` ist wichtig fuer den Medien-Upload (Bilder/Videos/
+   Audio) im CMS - nginx' Standardlimit von 1 MB wuerde sonst jede groessere
+   Datei mit `413 Payload Too Large` ablehnen, noch bevor die Anfrage den
+   Docker-Container erreicht.
 
 3. Speichern. Das Frontend (nginx im `frontend`-Container) leitet Anfragen an
    `/api/...` bereits intern an das Backend weiter (siehe
@@ -192,6 +199,7 @@ Plesk-Backup-/Restic-/Offsite-Sicherung mit aufzunehmen.
 |---|---|
 | Domain zeigt die Plesk-Standard- bzw. "Webseite im Aufbau"-Seite | Pruefen, dass unter *Hosting-Einstellungen* kein eigenes Webseiten-Dokument aktiv ist und die nginx-Direktive aus Schritt 7 gespeichert wurde |
 | `502 Bad Gateway` | Container laufen nicht (`docker compose ps` per SSH pruefen) oder falscher Port in der nginx-Direktive (muss zu `FRONTEND_PORT` aus `.env` passen, Standard `5173`) |
+| `413 Request Entity Too Large` / `413 Payload Too Large` beim Hochladen von Medien | `client_max_body_size` fehlt in der nginx-Direktive aus Schritt 7 - ergaenzen und die Domain-Einstellungen erneut speichern |
 | Seite laedt, aber Login schlaegt fehl | `CORS_ORIGIN`/`PUBLIC_API_URL` in `.env` pruefen - muessen exakt `https://cms.deine-domain.de` entsprechen; danach `docker compose up -d` erneut ausfuehren |
 | Ports schon belegt (mehrere Docker-Projekte auf einem Server) | `BACKEND_PORT`/`FRONTEND_PORT` in `.env` auf freie Ports setzen |
 | SSL-Zertifikat schlaegt fehl | DNS der (Sub-)Domain muss bereits auf den Server zeigen, bevor Let's Encrypt angefordert wird |
