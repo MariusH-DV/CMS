@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
+import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { PERMISSIONS } from '../common/permissions.constants';
 
@@ -18,6 +19,16 @@ export class SchedulesController {
   @Post()
   create(@Param('tenantId') tenantId: string, @Body() dto: CreateScheduleDto) {
     return this.schedulesService.create(tenantId, dto);
+  }
+
+  @RequirePermissions(PERMISSIONS.SCHEDULES_MANAGE)
+  @Patch(':id')
+  update(
+    @Param('tenantId') tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateScheduleDto,
+  ) {
+    return this.schedulesService.update(tenantId, id, dto);
   }
 
   @RequirePermissions(PERMISSIONS.SCHEDULES_MANAGE)

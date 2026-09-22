@@ -8,7 +8,7 @@ build/
 npm-debug.log*
 .DS_Store
 coverage/
-storage/tenants/
+backend/storage/tenants/
 *.img
 *.img.gz
 .vscode/
