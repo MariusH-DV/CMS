@@ -51,20 +51,32 @@ done
 # verdrahten.
 CHROMIUM_BIN="$(command -v chromium-browser || command -v chromium || echo chromium-browser)"
 
-# Falls Chromium abstuerzt, automatisch neu starten (kein systemd noetig,
-# da wir absichtlich ohne Displaymanager arbeiten).
+# Falls Chromium abstuerzt, automatisch neu starten. WICHTIG: der Chromium-
+# Start-Wrapper kehrt normalerweise sofort zur Shell zurueck (typisches
+# Verhalten von Browser-Launcher-Skripten) - auch beim allerersten echten
+# Start. Ein simples "while true; do chromium ...; sleep N; done" wuerde
+# deshalb NICHT auf einen Absturz warten, sondern bei jedem Schleifen-
+# durchlauf erneut chromium aufrufen. Da schon eine Instanz laeuft, haengt
+# sich der Aufruf dann per "Opening in existing browser session" einfach als
+# zusaetzlichen Tab an die laufende Instanz an - alle paar Sekunden ein
+# weiterer Tab, was wie ein staendiges Neuladen/Flackern aussieht und
+# nach und nach den Speicher aufbraucht.
+# Deshalb: vor jedem (Neu-)Start pruefen, ob schon eine Instanz mit unserer
+# Kiosk-URL laeuft, und nur bei Bedarf tatsaechlich neu starten.
 while true; do
-  "${CHROMIUM_BIN}" \
-    --kiosk \
-    --start-fullscreen \
-    ${CHROMIUM_WINDOW_ARGS} \
-    --noerrdialogs \
-    --disable-infobars \
-    --disable-session-crashed-bubble \
-    --disable-pinch \
-    --overscroll-history-navigation=0 \
-    --check-for-update-interval=31536000 \
-    --autoplay-policy=no-user-gesture-required \
-    http://localhost:8088
-  sleep 3
+  if ! pgrep -f "http://localhost:8088" >/dev/null 2>&1; then
+    "${CHROMIUM_BIN}" \
+      --kiosk \
+      --start-fullscreen \
+      ${CHROMIUM_WINDOW_ARGS} \
+      --noerrdialogs \
+      --disable-infobars \
+      --disable-session-crashed-bubble \
+      --disable-pinch \
+      --overscroll-history-navigation=0 \
+      --check-for-update-interval=31536000 \
+      --autoplay-policy=no-user-gesture-required \
+      http://localhost:8088 &
+  fi
+  sleep 5
 done
