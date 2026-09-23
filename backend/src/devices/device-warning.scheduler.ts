@@ -9,8 +9,9 @@ const WARNING_RESEND_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 /**
  * Prueft periodisch die zuletzt per Heartbeat gemeldete CPU-/RAM-/
- * Speicherauslastung von Leihgeraeten gegen die vom System-Admin gesetzte
- * Warngrenze und verschickt bei Ueberschreitung eine Mail.
+ * Speicherauslastung sowie GPU-Temperatur von Leihgeraeten gegen die vom
+ * System-Admin je Metrik gesetzte Warngrenze und verschickt bei
+ * Ueberschreitung irgendeiner davon eine gemeinsame Mail.
  */
 @Injectable()
 export class DeviceWarningScheduler {
@@ -24,24 +25,50 @@ export class DeviceWarningScheduler {
   @Cron(CronExpression.EVERY_5_MINUTES)
   async checkThresholds() {
     const devices = await this.prisma.device.findMany({
-      where: { isLoaner: true, warningThresholdPercent: { not: null } },
+      where: {
+        isLoaner: true,
+        OR: [
+          { cpuWarningThresholdPercent: { not: null } },
+          { ramWarningThresholdPercent: { not: null } },
+          { diskWarningThresholdPercent: { not: null } },
+          { gpuWarningThresholdC: { not: null } },
+        ],
+      },
       include: { tenant: { select: { name: true } } },
     });
 
     let warnedCount = 0;
     for (const device of devices) {
-      const threshold = device.warningThresholdPercent;
-      if (threshold == null) continue;
-
       const breaches: string[] = [];
-      if (device.cpuLoadPercent != null && device.cpuLoadPercent >= threshold) {
-        breaches.push(`CPU ${device.cpuLoadPercent.toFixed(0)}%`);
+      if (
+        device.cpuWarningThresholdPercent != null &&
+        device.cpuLoadPercent != null &&
+        device.cpuLoadPercent >= device.cpuWarningThresholdPercent
+      ) {
+        breaches.push(`CPU ${device.cpuLoadPercent.toFixed(0)}% (Grenze ${device.cpuWarningThresholdPercent}%)`);
       }
-      if (device.memUsedPercent != null && device.memUsedPercent >= threshold) {
-        breaches.push(`RAM ${device.memUsedPercent.toFixed(0)}%`);
+      if (
+        device.ramWarningThresholdPercent != null &&
+        device.memUsedPercent != null &&
+        device.memUsedPercent >= device.ramWarningThresholdPercent
+      ) {
+        breaches.push(`RAM ${device.memUsedPercent.toFixed(0)}% (Grenze ${device.ramWarningThresholdPercent}%)`);
       }
-      if (device.diskUsedPercent != null && device.diskUsedPercent >= threshold) {
-        breaches.push(`Speicher ${device.diskUsedPercent.toFixed(0)}%`);
+      if (
+        device.diskWarningThresholdPercent != null &&
+        device.diskUsedPercent != null &&
+        device.diskUsedPercent >= device.diskWarningThresholdPercent
+      ) {
+        breaches.push(
+          `Speicher ${device.diskUsedPercent.toFixed(0)}% (Grenze ${device.diskWarningThresholdPercent}%)`,
+        );
+      }
+      if (
+        device.gpuWarningThresholdC != null &&
+        device.gpuTempC != null &&
+        device.gpuTempC >= device.gpuWarningThresholdC
+      ) {
+        breaches.push(`GPU ${device.gpuTempC.toFixed(0)}°C (Grenze ${device.gpuWarningThresholdC}°C)`);
       }
       if (breaches.length === 0) continue;
 
@@ -54,7 +81,7 @@ export class DeviceWarningScheduler {
       // eslint-disable-next-line no-await-in-loop
       const sent = await this.mailService.sendAlert(
         `Warngrenze ueberschritten: ${device.name}`,
-        `Das Leihgeraet "${device.name}" (Mandant: ${tenantLabel}) hat die Warngrenze von ${threshold}% ueberschritten: ${breaches.join(', ')}.`,
+        `Das Leihgeraet "${device.name}" (Mandant: ${tenantLabel}) hat folgende Warngrenze(n) ueberschritten: ${breaches.join(', ')}.`,
       );
       if (sent) {
         // eslint-disable-next-line no-await-in-loop

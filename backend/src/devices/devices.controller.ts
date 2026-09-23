@@ -46,4 +46,13 @@ export class DevicesController {
   remove(@Param('tenantId') tenantId: string, @Param('deviceId') deviceId: string) {
     return this.devicesService.remove(tenantId, deviceId);
   }
+
+  // Ersetzt den frueheren automatischen 10-Minuten-Update-Timer auf dem Pi:
+  // der Mandant stoesst das Update gezielt fuer ein einzelnes Geraet an,
+  // wenn eine neue Version verfuegbar ist (siehe listForTenant()/updateAvailable).
+  @RequirePermissions(PERMISSIONS.DEVICES_MANAGE)
+  @Post(':deviceId/update')
+  requestUpdate(@Param('tenantId') tenantId: string, @Param('deviceId') deviceId: string) {
+    return this.devicesService.requestUpdate(tenantId, deviceId);
+  }
 }

@@ -63,6 +63,8 @@ export interface Device {
   createdAt: string;
   isLoaner?: boolean;
   locked?: boolean;
+  playerVersion?: string | null;
+  updateAvailable?: boolean;
 }
 
 export interface DeviceStatusInfo {
@@ -96,7 +98,10 @@ export interface AdminDevice {
   gpuMemMb: number | null;
   playerVersion: string | null;
   isLoaner: boolean;
-  warningThresholdPercent: number | null;
+  cpuWarningThresholdPercent: number | null;
+  ramWarningThresholdPercent: number | null;
+  diskWarningThresholdPercent: number | null;
+  gpuWarningThresholdC: number | null;
   locked: boolean;
   tenant: { id: string; name: string } | null;
 }

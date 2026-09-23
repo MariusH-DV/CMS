@@ -322,6 +322,23 @@ async function sendHeartbeat() {
           console.error('Shutdown fehlgeschlagen:', shutdownErr.message);
         }
       }
+      if (data.updateRequested) {
+        console.log('Update angefordert - stosse cms-player-updater.service an...');
+        try {
+          // WICHTIG: NICHT das Update-Skript direkt ausfuehren, sondern ueber
+          // "systemctl start" die eigenstaendige systemd-Unit anstossen (frueher
+          // per Timer alle 10 Minuten, jetzt nur noch auf Abruf). Das Skript
+          // stoppt cms-player.service selbst - liefe es als Kindprozess dieses
+          // Node-Prozesses, wuerde es sich dabei mitten in der Ausfuehrung selbst
+          // abwuergen und ein halb ausgetauschtes, kaputtes Update hinterlassen.
+          // "--no-block": gibt sofort zurueck, statt auf das Ende zu warten -
+          // der aufrufende Prozess (dieser hier) wird durch den Update-Vorgang
+          // ohnehin gleich beendet.
+          execSync('sudo -n /bin/systemctl start --no-block cms-player-updater.service', { timeout: 5000 });
+        } catch (updateErr) {
+          console.error('Update-Anstoss fehlgeschlagen:', updateErr.message);
+        }
+      }
     }
   } catch (_err) {
     // Heartbeat-Fehler sind unkritisch, naechster Versuch folgt automatisch

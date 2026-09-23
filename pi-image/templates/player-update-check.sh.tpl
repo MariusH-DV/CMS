@@ -1,9 +1,12 @@
 #!/bin/bash
-# CMS Player - Auto-Update: prueft periodisch (siehe cms-player-updater.timer),
-# ob eine neue Player-Version verfuegbar ist, und tauscht bei Bedarf nur den
-# Quellcode aus (server.js, public/, package.json). config/, data/ und
-# branding/ innerhalb von /opt/cms-player werden dabei NICHT angefasst -
-# das sind pro-Geraet erzeugte Laufzeitdaten, kein Quellcode.
+# CMS Player - Update: wird ausschliesslich auf Abruf ausgefuehrt (per
+# "systemctl start cms-player-updater.service", angestossen von server.js,
+# wenn im CMS unter Mandant/Geraete ein Update fuer dieses Geraet angefordert
+# wurde - kein automatischer Timer mehr). Prueft die verfuegbare
+# Player-Version und tauscht bei Bedarf nur den Quellcode aus (server.js,
+# public/, package.json). config/, data/ und branding/ innerhalb von
+# /opt/cms-player werden dabei NICHT angefasst - das sind pro-Geraet erzeugte
+# Laufzeitdaten, kein Quellcode.
 set -e
 
 INSTALL_DIR="/opt/cms-player"

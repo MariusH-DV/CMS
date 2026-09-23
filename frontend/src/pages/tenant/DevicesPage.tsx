@@ -27,6 +27,7 @@ export default function DevicesPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [claimSuccess, setClaimSuccess] = useState(false);
+  const [updateRequestedFor, setUpdateRequestedFor] = useState<string | null>(null);
 
   function load() {
     apiClient.get<Device[]>(`/tenants/${tenantId}/devices`).then((res) => setDevices(res.data));
@@ -68,6 +69,16 @@ export default function DevicesPage() {
     try {
       await apiClient.delete(`/tenants/${tenantId}/devices/${deviceId}`);
       load();
+    } catch (err) {
+      alert(apiErrorMessage(err));
+    }
+  }
+
+  async function requestUpdate(deviceId: string) {
+    try {
+      await apiClient.post(`/tenants/${tenantId}/devices/${deviceId}/update`);
+      setUpdateRequestedFor(deviceId);
+      setTimeout(() => setUpdateRequestedFor(null), 4000);
     } catch (err) {
       alert(apiErrorMessage(err));
     }
@@ -143,12 +154,13 @@ export default function DevicesPage() {
               <th>Zuletzt gesehen</th>
               <th>Standard-Playlist</th>
               <th></th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {devices.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-center py-6 text-slate-400">
+                <td colSpan={6} className="text-center py-6 text-slate-400">
                   Noch keine Geraete registriert.
                 </td>
               </tr>
@@ -189,6 +201,23 @@ export default function DevicesPage() {
                       </option>
                     ))}
                   </select>
+                </td>
+                <td className="text-right">
+                  {updateRequestedFor === d.id ? (
+                    <span className="text-xs text-emerald-600">
+                      <i className="fa-solid fa-check mr-1" /> Update angefordert
+                    </span>
+                  ) : (
+                    d.updateAvailable && (
+                      <button
+                        className="btn-secondary"
+                        onClick={() => requestUpdate(d.id)}
+                        title="Neue Player-Version verfuegbar - Update anstossen"
+                      >
+                        <i className="fa-solid fa-arrow-rotate-right" /> Update
+                      </button>
+                    )
+                  )}
                 </td>
                 <td className="text-right">
                   {d.isLoaner ? (

@@ -145,33 +145,48 @@ sed -e "s/^User=pi$/User=${RUN_USER}/" \
 systemctl daemon-reload
 systemctl enable cms-player.service
 
-echo "==> Passwortlosen Shutdown-Befehl fuer ${RUN_USER} einrichten (fuer die Leihgeraete-Fernabschaltung im System-Admin Dashboard)"
-# Der Player-Dienst laeuft bewusst NICHT als root (s.o.) - fuer den Shutdown-
-# Befehl braucht der Dienst-Benutzer deshalb genau diese eine, eng gefasste
-# sudo-Berechtigung. "visudo -cf" prueft die Syntax der Datei VOR dem
-# Verschieben an ihren Zielort - eine kaputte sudoers-Datei wuerde sonst im
-# schlimmsten Fall jegliche sudo-Nutzung auf dem System blockieren.
-SUDOERS_TMP="$(mktemp)"
-echo "${RUN_USER} ALL=(root) NOPASSWD: /sbin/shutdown" > "${SUDOERS_TMP}"
-chmod 440 "${SUDOERS_TMP}"
-if visudo -cf "${SUDOERS_TMP}" >/dev/null 2>&1; then
-  mv "${SUDOERS_TMP}" /etc/sudoers.d/cms-player-shutdown
-else
-  echo "WARNUNG: sudoers-Regel ungueltig - Fern-Shutdown fuer Leihgeraete wird NICHT eingerichtet."
-  rm -f "${SUDOERS_TMP}"
-fi
-
-echo "==> Auto-Update-Mechanismus fuer den Player-Quellcode einrichten"
+echo "==> Update-Mechanismus fuer den Player-Quellcode einrichten (auf Abruf, kein automatischer Timer mehr)"
 # Ausserhalb von INSTALL_DIR, da das Update-Skript genau dessen Inhalt
 # austauscht und sich nicht selbst waehrend der Ausfuehrung loeschen darf.
+# Frueher lief das per systemd-Timer alle 10 Minuten automatisch - jetzt wird
+# der eigenstaendige "cms-player-updater.service" NUR noch gezielt gestartet,
+# wenn im CMS unter Mandant/Geraete ein Update fuer dieses Geraet angestossen
+# wird (server.js liest das per Heartbeat aus und ruft "systemctl start"
+# darauf auf). Eigenstaendige Unit (nicht Teil von cms-player.service) ist
+# WICHTIG: das Update-Skript stoppt cms-player.service selbst - wuerde es als
+# Kindprozess davon laufen, wuerde es sich dabei selbst abbrechen.
 UPDATER_DIR="/opt/cms-player-updater"
 mkdir -p "${UPDATER_DIR}"
 cp "${PROVISIONING_DIR}/player-update-check.sh" "${UPDATER_DIR}/player-update-check.sh"
 chmod +x "${UPDATER_DIR}/player-update-check.sh"
 cp "${PROVISIONING_DIR}/cms-player-updater.service" /etc/systemd/system/cms-player-updater.service
-cp "${PROVISIONING_DIR}/cms-player-updater.timer" /etc/systemd/system/cms-player-updater.timer
 systemctl daemon-reload
-systemctl enable --now cms-player-updater.timer
+
+echo "==> Passwortlose Befehle fuer ${RUN_USER} einrichten (Leihgeraete-Fernabschaltung + Update-Anstoss aus dem CMS)"
+# Der Player-Dienst laeuft bewusst NICHT als root (s.o.) - fuer Shutdown und
+# das Anstossen des Updater-Service braucht der Dienst-Benutzer deshalb genau
+# diese zwei eng gefassten sudo-Berechtigungen. "visudo -cf" prueft die
+# Syntax der Datei VOR dem Verschieben an ihren Zielort - eine kaputte
+# sudoers-Datei wuerde sonst im schlimmsten Fall jegliche sudo-Nutzung auf
+# dem System blockieren.
+# Feste Pfade statt dynamischer Aufloesung (z.B. "command -v"): sudo prueft
+# NOPASSWD-Regeln per exaktem String-Vergleich gegen den Pfad, den server.js
+# tatsaechlich aufruft - eine hier abweichend aufgeloeste Variante (z.B.
+# /usr/sbin/shutdown statt /sbin/shutdown bei usrmerge-Systemen) wuerde die
+# Regel unbrauchbar machen. /sbin und /bin sind auf Raspberry Pi OS als
+# Kompatibilitaets-Symlinks auf /usr/sbin bzw. /usr/bin vorhanden.
+SUDOERS_TMP="$(mktemp)"
+{
+  echo "${RUN_USER} ALL=(root) NOPASSWD: /sbin/shutdown -h now"
+  echo "${RUN_USER} ALL=(root) NOPASSWD: /bin/systemctl start --no-block cms-player-updater.service"
+} > "${SUDOERS_TMP}"
+chmod 440 "${SUDOERS_TMP}"
+if visudo -cf "${SUDOERS_TMP}" >/dev/null 2>&1; then
+  mv "${SUDOERS_TMP}" /etc/sudoers.d/cms-player-remote-control
+else
+  echo "WARNUNG: sudoers-Regel ungueltig - Fern-Shutdown/-Update fuer Leihgeraete wird NICHT eingerichtet."
+  rm -f "${SUDOERS_TMP}"
+fi
 
 echo "==> Konsolen-Autologin fuer Benutzer ${RUN_USER} aktivieren (kein Login-Fenster)"
 # B2 = "Console Autologin": Pi bootet auf die Textkonsole (tty1) und meldet

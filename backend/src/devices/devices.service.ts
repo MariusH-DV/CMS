@@ -12,6 +12,7 @@ import { PairingRequestDto } from './dto/pairing-request.dto';
 import { ClaimDeviceDto } from './dto/claim-device.dto';
 import { HeartbeatDto } from './dto/heartbeat.dto';
 import { BrandingService } from '../branding/branding.service';
+import { PlayerDistributionService } from '../player-distribution/player-distribution.service';
 
 // Player sendet alle 30s einen Heartbeat - 90s Toleranz fuer einen einzelnen
 // verpassten/verzoegerten Heartbeat, bevor ein Geraet als offline gilt.
@@ -23,6 +24,7 @@ export class DevicesService {
     private prisma: PrismaService,
     private tenantsService: TenantsService,
     private brandingService: BrandingService,
+    private playerDistributionService: PlayerDistributionService,
   ) {}
 
   private generatePin(): string {
@@ -110,7 +112,7 @@ export class DevicesService {
   }
 
   async listForTenant(tenantId: string) {
-    return this.prisma.device.findMany({
+    const devices = await this.prisma.device.findMany({
       where: { tenantId },
       // Explizite Auswahl statt include/voller Objektrueckgabe: apiToken, pin
       // und vor allem lockPin duerfen nie an den Mandanten-Kunden gehen - sonst
@@ -127,9 +129,15 @@ export class DevicesService {
         createdAt: true,
         isLoaner: true,
         locked: true,
+        playerVersion: true,
       },
       orderBy: { createdAt: 'desc' },
     });
+    // Manueller Update-Button (ersetzt den frueheren automatischen
+    // 10-Minuten-Timer) soll nur angezeigt werden, wenn tatsaechlich eine
+    // andere Version verfuegbar ist.
+    const latestVersion = this.playerDistributionService.getVersion();
+    return devices.map((d) => ({ ...d, updateAvailable: d.playerVersion !== latestVersion }));
   }
 
   async update(tenantId: string, deviceId: string, data: { name?: string; playlistId?: string | null }) {
@@ -138,6 +146,16 @@ export class DevicesService {
       throw new NotFoundException('Geraet nicht gefunden');
     }
     return this.prisma.device.update({ where: { id: deviceId }, data });
+  }
+
+  /** Vom Mandanten-Admin angefordertes Player-Update fuer ein einzelnes Geraet. */
+  async requestUpdate(tenantId: string, deviceId: string) {
+    const device = await this.prisma.device.findFirst({ where: { id: deviceId, tenantId } });
+    if (!device) {
+      throw new NotFoundException('Geraet nicht gefunden');
+    }
+    await this.prisma.device.update({ where: { id: deviceId }, data: { updateRequested: true } });
+    return { success: true };
   }
 
   async remove(tenantId: string, deviceId: string) {
@@ -149,6 +167,16 @@ export class DevicesService {
       throw new ForbiddenException(
         'Dieses Geraet ist ein Leihgeraet und kann nicht entfernt werden. Bitte wende dich an den Anbieter.',
       );
+    }
+    await this.prisma.device.delete({ where: { id: deviceId } });
+    return { success: true };
+  }
+
+  /** System-Admin darf jedes Geraet loeschen, auch Leihgeraete - im Gegensatz zu remove() (Kunden-Ansicht). */
+  async removeAsAdmin(deviceId: string) {
+    const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
+    if (!device) {
+      throw new NotFoundException('Geraet nicht gefunden');
     }
     await this.prisma.device.delete({ where: { id: deviceId } });
     return { success: true };
@@ -176,7 +204,10 @@ export class DevicesService {
         gpuMemMb: true,
         playerVersion: true,
         isLoaner: true,
-        warningThresholdPercent: true,
+        cpuWarningThresholdPercent: true,
+        ramWarningThresholdPercent: true,
+        diskWarningThresholdPercent: true,
+        gpuWarningThresholdC: true,
         locked: true,
         tenant: { select: { id: true, name: true } },
       },
@@ -186,7 +217,13 @@ export class DevicesService {
 
   async updateAdminSettings(
     deviceId: string,
-    data: { isLoaner?: boolean; warningThresholdPercent?: number | null },
+    data: {
+      isLoaner?: boolean;
+      cpuWarningThresholdPercent?: number | null;
+      ramWarningThresholdPercent?: number | null;
+      diskWarningThresholdPercent?: number | null;
+      gpuWarningThresholdC?: number | null;
+    },
   ) {
     const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
     if (!device) {
@@ -201,7 +238,10 @@ export class DevicesService {
         name: true,
         status: true,
         isLoaner: true,
-        warningThresholdPercent: true,
+        cpuWarningThresholdPercent: true,
+        ramWarningThresholdPercent: true,
+        diskWarningThresholdPercent: true,
+        gpuWarningThresholdC: true,
         locked: true,
       },
     });
@@ -261,11 +301,13 @@ export class DevicesService {
 
   async heartbeat(apiToken: string, ipAddress?: string, metrics?: HeartbeatDto) {
     const device = await this.authenticateDevice(apiToken);
-    // Vor dem Update gemerkt, weil das Update selbst shutdownRequested sofort
-    // zuruecksetzt - der Player soll den Befehl aber genau ein Mal (in dieser
-    // Antwort) sehen, unabhaengig davon, ob das Herunterfahren dann tatsaechlich
-    // gelingt (schlaegt es fehl, kann der System-Admin es einfach erneut anstossen).
+    // Vor dem Update gemerkt, weil das Update selbst shutdownRequested/
+    // updateRequested sofort zuruecksetzt - der Player soll den jeweiligen
+    // Befehl aber genau ein Mal (in dieser Antwort) sehen, unabhaengig davon,
+    // ob er dann tatsaechlich gelingt (schlaegt er fehl, kann er einfach
+    // erneut angestossen werden).
     const wasShutdownRequested = device.shutdownRequested;
+    const wasUpdateRequested = device.updateRequested;
     const updated = await this.prisma.device.update({
       where: { id: device.id },
       data: {
@@ -280,6 +322,7 @@ export class DevicesService {
         gpuMemMb: metrics?.gpuMemMb,
         playerVersion: metrics?.playerVersion,
         shutdownRequested: false,
+        updateRequested: false,
       },
       // Bewusst kein voller Objekt-Rueckgabewert (frueher der Fall): apiToken,
       // pin und vor allem lockPin duerfen nicht an den Player zurueckgehen -
@@ -296,7 +339,7 @@ export class DevicesService {
         tenant: { select: { name: true } },
       },
     });
-    return { ...updated, shutdownRequested: wasShutdownRequested };
+    return { ...updated, shutdownRequested: wasShutdownRequested, updateRequested: wasUpdateRequested };
   }
 
   /** Reduzierter Geraete-Status fuer die Mandanten-Uebersicht (keine sensiblen Felder wie apiToken). */

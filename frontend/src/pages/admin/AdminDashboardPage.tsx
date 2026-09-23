@@ -16,6 +16,12 @@ const statusColors: Record<string, string> = {
   DISABLED: 'bg-red-50 text-red-700',
 };
 
+type ThresholdField =
+  | 'cpuWarningThresholdPercent'
+  | 'ramWarningThresholdPercent'
+  | 'diskWarningThresholdPercent'
+  | 'gpuWarningThresholdC';
+
 export default function AdminDashboardPage() {
   const [devices, setDevices] = useState<AdminDevice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,9 +47,8 @@ export default function AdminDashboardPage() {
     load();
   }
 
-  async function setThreshold(deviceId: string, value: string) {
-    const warningThresholdPercent = value === '' ? null : Number(value);
-    await apiClient.patch(`/admin/devices/${deviceId}`, { warningThresholdPercent });
+  async function setThreshold(deviceId: string, field: ThresholdField, value: string) {
+    await apiClient.patch(`/admin/devices/${deviceId}`, { [field]: value === '' ? null : Number(value) });
     load();
   }
 
@@ -62,6 +67,16 @@ export default function AdminDashboardPage() {
     try {
       const res = await apiClient.post<{ lockPin: string }>(`/admin/devices/${device.id}/lock`);
       setRevealedPins((prev) => ({ ...prev, [device.id]: res.data.lockPin }));
+      load();
+    } catch (err) {
+      alert(apiErrorMessage(err));
+    }
+  }
+
+  async function removeDevice(device: AdminDevice) {
+    if (!confirm(`"${device.name}" wirklich unwiderruflich entfernen?`)) return;
+    try {
+      await apiClient.delete(`/admin/devices/${device.id}`);
       load();
     } catch (err) {
       alert(apiErrorMessage(err));
@@ -89,6 +104,7 @@ export default function AdminDashboardPage() {
           <i className="fa-solid fa-handshake mr-2 text-brand-500" /> Leihgeraete ({loaners.length})
         </h2>
         <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="table-base">
             <thead>
               <tr>
@@ -96,7 +112,11 @@ export default function AdminDashboardPage() {
                 <th>Mandant</th>
                 <th>Status</th>
                 <th>Auslastung</th>
-                <th>Warngrenze</th>
+                <th>Warngrenze CPU %</th>
+                <th>Warngrenze RAM %</th>
+                <th>Warngrenze Speicher %</th>
+                <th>Warngrenze GPU &deg;C</th>
+                <th></th>
                 <th></th>
                 <th></th>
               </tr>
@@ -104,7 +124,7 @@ export default function AdminDashboardPage() {
             <tbody>
               {loaners.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-6 text-slate-400">
+                  <td colSpan={11} className="text-center py-6 text-slate-400">
                     Noch keine Geraete als Leihgeraet markiert.
                   </td>
                 </tr>
@@ -113,15 +133,18 @@ export default function AdminDashboardPage() {
                 <DeviceRow
                   key={d.id}
                   device={d}
+                  showThresholds
                   revealedPin={revealedPins[d.id]}
                   onToggleLoaner={toggleLoaner}
                   onSetThreshold={setThreshold}
                   onShutdown={shutdown}
                   onLock={lock}
+                  onRemove={removeDevice}
                 />
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </section>
 
@@ -130,6 +153,7 @@ export default function AdminDashboardPage() {
           <i className="fa-solid fa-building-user mr-2 text-brand-500" /> Kundengeraete ({customerDevices.length})
         </h2>
         <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="table-base">
             <thead>
               <tr>
@@ -139,13 +163,12 @@ export default function AdminDashboardPage() {
                 <th>Auslastung</th>
                 <th></th>
                 <th></th>
-                <th></th>
               </tr>
             </thead>
             <tbody>
               {customerDevices.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-6 text-slate-400">
+                  <td colSpan={6} className="text-center py-6 text-slate-400">
                     Keine Kundengeraete vorhanden.
                   </td>
                 </tr>
@@ -154,35 +177,66 @@ export default function AdminDashboardPage() {
                 <DeviceRow
                   key={d.id}
                   device={d}
+                  showThresholds={false}
                   revealedPin={revealedPins[d.id]}
                   onToggleLoaner={toggleLoaner}
                   onSetThreshold={setThreshold}
                   onShutdown={shutdown}
                   onLock={lock}
+                  onRemove={removeDevice}
                 />
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </section>
     </div>
   );
 }
 
+function ThresholdInput({
+  device,
+  field,
+  max,
+  onSetThreshold,
+}: {
+  device: AdminDevice;
+  field: ThresholdField;
+  max: number;
+  onSetThreshold: (deviceId: string, field: ThresholdField, value: string) => void;
+}) {
+  return (
+    <input
+      type="number"
+      min={1}
+      max={max}
+      className="input w-20"
+      placeholder="-"
+      defaultValue={device[field] ?? ''}
+      onBlur={(e) => onSetThreshold(device.id, field, e.target.value)}
+    />
+  );
+}
+
 function DeviceRow({
   device,
+  showThresholds,
   revealedPin,
   onToggleLoaner,
   onSetThreshold,
   onShutdown,
   onLock,
+  onRemove,
 }: {
   device: AdminDevice;
+  showThresholds: boolean;
   revealedPin?: string;
   onToggleLoaner: (d: AdminDevice) => void;
-  onSetThreshold: (deviceId: string, value: string) => void;
+  onSetThreshold: (deviceId: string, field: ThresholdField, value: string) => void;
   onShutdown: (d: AdminDevice) => void;
   onLock: (d: AdminDevice) => void;
+  onRemove: (d: AdminDevice) => void;
 }) {
   const online = device.status === 'ACTIVE' && !!device.lastSeenAt;
   return (
@@ -218,35 +272,32 @@ function DeviceRow({
           <span className="text-xs text-slate-400">-</span>
         )}
       </td>
-      {device.isLoaner ? (
-        <td>
-          <input
-            type="number"
-            min={1}
-            max={100}
-            className="input w-24"
-            placeholder="z.B. 90"
-            defaultValue={device.warningThresholdPercent ?? ''}
-            onBlur={(e) => onSetThreshold(device.id, e.target.value)}
-          />
-        </td>
-      ) : (
-        <td />
-      )}
-      <td className="text-right whitespace-nowrap">
-        {device.isLoaner && (
-          <>
+      {showThresholds && (
+        <>
+          <td>
+            <ThresholdInput device={device} field="cpuWarningThresholdPercent" max={100} onSetThreshold={onSetThreshold} />
+          </td>
+          <td>
+            <ThresholdInput device={device} field="ramWarningThresholdPercent" max={100} onSetThreshold={onSetThreshold} />
+          </td>
+          <td>
+            <ThresholdInput device={device} field="diskWarningThresholdPercent" max={100} onSetThreshold={onSetThreshold} />
+          </td>
+          <td>
+            <ThresholdInput device={device} field="gpuWarningThresholdC" max={120} onSetThreshold={onSetThreshold} />
+          </td>
+          <td className="text-right whitespace-nowrap">
             <button className="btn-secondary mr-2" onClick={() => onShutdown(device)} title="Herunterfahren">
               <i className="fa-solid fa-power-off" />
             </button>
             {!device.locked && (
-              <button className="btn-secondary mr-2" onClick={() => onLock(device)} title="Sperren">
+              <button className="btn-secondary" onClick={() => onLock(device)} title="Sperren">
                 <i className="fa-solid fa-lock" />
               </button>
             )}
-          </>
-        )}
-      </td>
+          </td>
+        </>
+      )}
       <td className="text-right">
         <button
           className="btn-secondary"
@@ -254,6 +305,11 @@ function DeviceRow({
           title={device.isLoaner ? 'Als Kundengeraet markieren' : 'Als Leihgeraet markieren'}
         >
           {device.isLoaner ? 'Leihgeraet aufheben' : 'Als Leihgeraet markieren'}
+        </button>
+      </td>
+      <td className="text-right">
+        <button className="btn-danger" onClick={() => onRemove(device)} title="Geraet unwiderruflich entfernen">
+          <i className="fa-solid fa-trash" />
         </button>
       </td>
     </tr>
