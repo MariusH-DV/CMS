@@ -3,6 +3,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import TenantActiveGuard from './components/TenantActiveGuard';
 import AppShell from './components/AppShell';
 import LoginPage from './pages/LoginPage';
+import ImpressumPage from './pages/legal/ImpressumPage';
+import DatenschutzPage from './pages/legal/DatenschutzPage';
 import DashboardRedirect from './pages/DashboardRedirect';
 import TenantsPage from './pages/admin/TenantsPage';
 import TenantDetailAdminPage from './pages/admin/TenantDetailAdminPage';
@@ -20,6 +22,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/impressum" element={<ImpressumPage />} />
+      <Route path="/datenschutz" element={<DatenschutzPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>

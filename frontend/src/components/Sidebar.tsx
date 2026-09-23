@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, useParams } from 'react-router-dom';
+import { Link, NavLink, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { PERMISSIONS } from '../api/types';
 import { apiClient } from '../api/client';
@@ -128,8 +128,16 @@ export default function Sidebar() {
         </div>
       )}
 
-      <div className="mt-auto px-2 pt-3 border-t border-white/50 text-center text-xs text-slate-400">
-        Version {version ?? '...'}
+      <div className="mt-auto px-2 pt-3 border-t border-white/50 text-center text-xs text-slate-400 flex flex-col gap-1">
+        <div>Version {version ?? '...'}</div>
+        <div className="flex justify-center gap-3">
+          <Link to="/impressum" className="hover:text-slate-600">
+            Impressum
+          </Link>
+          <Link to="/datenschutz" className="hover:text-slate-600">
+            Datenschutz
+          </Link>
+        </div>
       </div>
     </aside>
   );
