@@ -157,6 +157,12 @@ export class DevicesService {
         gpuMemMb: metrics?.gpuMemMb,
         playerVersion: metrics?.playerVersion,
       },
+      // Der Player uebernimmt den Namen des tatsaechlich zugeordneten
+      // Mandanten aus der Antwort - der Name im lokal auf dem Pi
+      // gespeicherten player-config.json ist nur der Stand zum Zeitpunkt
+      // der Paket-Erzeugung und kann vom Mandanten abweichen, dem das
+      // Geraet spaeter tatsaechlich per PIN zugeordnet wurde.
+      include: { tenant: { select: { name: true } } },
     });
   }
 

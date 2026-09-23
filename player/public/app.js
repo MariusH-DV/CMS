@@ -1,6 +1,7 @@
 (function () {
   const screens = {
     pairing: document.getElementById('pairing-screen'),
+    paired: document.getElementById('paired-screen'),
     empty: document.getElementById('empty-screen'),
     error: document.getElementById('error-screen'),
     player: document.getElementById('player-screen'),
@@ -8,6 +9,7 @@
   };
   const pinEl = document.getElementById('pin');
   const pairingTenantEl = document.getElementById('pairing-tenant');
+  const pairedTenantEl = document.getElementById('paired-tenant');
   const emptyTenantEl = document.getElementById('empty-tenant');
   const errorMessageEl = document.getElementById('error-message');
   const deactivatedReasonEl = document.getElementById('deactivated-reason');
@@ -25,10 +27,17 @@
    * bleiben, obwohl kurz danach ein eigenes verfuegbar waere.
    */
   function refreshBrandLogo() {
+    // Cache-Buster bei JEDEM Aufruf neu - sonst wuerde ein einmal erfolgreich
+    // gesetztes img.src (z.B. "/branding-logo") bei einer spaeteren Aenderung
+    // des Logos (neuer Upload, oder Geraet wurde einem anderen Mandanten mit
+    // anderem Logo zugewiesen) NICHT neu geladen, weil sich der src-String
+    // nicht mehr veraendert - Browser laden ein unveraendertes img.src nicht
+    // erneut nach.
+    const url = '/branding-logo?t=' + Date.now();
     const probe = new Image();
     probe.onload = () => {
       brandLogoEls.forEach((el) => {
-        if (el.src.indexOf('/branding-logo') === -1) el.src = '/branding-logo';
+        el.src = url;
       });
     };
     probe.onerror = () => {
@@ -36,7 +45,7 @@
         if (el.src.indexOf('/static/logo.png') === -1) el.src = '/static/logo.png';
       });
     };
-    probe.src = '/branding-logo';
+    probe.src = url;
   }
 
   function showScreen(name) {
@@ -121,8 +130,27 @@
     });
   }
 
+  let previousMode = null;
+  let successUntil = 0;
+  const SUCCESS_SCREEN_MS = 2200;
+
   function render(status) {
     lastStatus = status;
+
+    // Beim allerersten Wechsel von "pairing" zu einem anderen Modus (also
+    // genau dann, wenn die PIN gerade erfolgreich im CMS eingegeben wurde)
+    // kurz eine Erfolgs-Animation zeigen, bevor zum eigentlichen Ziel-Screen
+    // (leer/Playlist) gewechselt wird.
+    if (previousMode === 'pairing' && status.mode !== 'pairing') {
+      successUntil = Date.now() + SUCCESS_SCREEN_MS;
+      pairedTenantEl.textContent = status.tenantName || '';
+    }
+    previousMode = status.mode;
+
+    if (Date.now() < successUntil) {
+      showScreen('paired');
+      return;
+    }
 
     if (status.mode === 'pairing') {
       renderPin(status.pin);

@@ -24,7 +24,7 @@ export default function TenantOverviewPage() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [hasLogo, setHasLogo] = useState(true);
-  const [logoVersion, setLogoVersion] = useState(0);
+  const [logoVersion, setLogoVersion] = useState(() => Date.now());
 
   useEffect(() => {
     setError(null);

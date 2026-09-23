@@ -21,10 +21,17 @@ export default function Sidebar() {
   const currentMembership = user?.memberships.find((m) => m.tenantId === tenantId);
   const tenantActive = currentMembership?.tenant?.active ?? true;
   const [customLogoFailed, setCustomLogoFailed] = useState(false);
+  // Cache-Buster: aendert sich bei jedem Mandantenwechsel/Neuladen, damit nie
+  // eine (evtl. von einem Zwischen-Proxy) gecachte Antwort einer frueheren
+  // Anfrage - egal ob vom selben oder einem anderen Mandanten - wiederverwendet
+  // werden kann. Eine neue URL kann nie aus einem Cache fuer eine andere
+  // URL bedient werden.
+  const [logoCacheKey, setLogoCacheKey] = useState(() => Date.now());
   const useCustomLogo = Boolean(tenantId) && !customLogoFailed;
 
   useEffect(() => {
     setCustomLogoFailed(false);
+    setLogoCacheKey(Date.now());
   }, [tenantId]);
 
   useEffect(() => {
@@ -38,7 +45,7 @@ export default function Sidebar() {
     <aside className="w-64 shrink-0 border-r border-white/60 bg-white/50 backdrop-blur-xl p-4 flex flex-col gap-6">
       <div className="flex items-center gap-2 px-2 py-1">
         <img
-          src={useCustomLogo ? `/api/tenants/${tenantId}/branding/logo` : logo}
+          src={useCustomLogo ? `/api/tenants/${tenantId}/branding/logo?t=${logoCacheKey}` : logo}
           alt="Logo"
           className="h-8 w-8 rounded-md object-cover"
           onError={() => setCustomLogoFailed(true)}
