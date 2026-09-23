@@ -5,5 +5,6 @@ import { PlayerDistributionController } from './player-distribution.controller';
 @Module({
   providers: [PlayerDistributionService],
   controllers: [PlayerDistributionController],
+  exports: [PlayerDistributionService],
 })
 export class PlayerDistributionModule {}

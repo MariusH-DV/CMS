@@ -104,9 +104,6 @@ export class ProvisioningService {
     archive.append(renderTemplate('cms-player-updater.service.tpl', vars), {
       name: 'cms-provisioning/cms-player-updater.service',
     });
-    archive.append(renderTemplate('cms-player-updater.timer.tpl', vars), {
-      name: 'cms-provisioning/cms-player-updater.timer',
-    });
     archive.file(path.join(TEMPLATES_DIR, 'logo.png'), {
       name: 'cms-provisioning/logo.png',
     });

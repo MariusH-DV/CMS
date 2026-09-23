@@ -134,9 +134,12 @@ model Device {
   /// Leihgeraet (vom System-Admin vermietet/verliehen): kann vom Mandanten nicht
   /// geloescht werden, ausserdem vom System-Admin abschaltbar/sperrbar.
   isLoaner         Boolean  @default(false)
-  /// Warngrenze (Prozent) fuer CPU/RAM/Speicher-Auslastung, ab der eine Warn-Mail
-  /// verschickt wird. Nur fuer Leihgeraete vom System-Admin gesetzt.
-  warningThresholdPercent Int?
+  /// Warngrenzen je Metrik (Prozent bei CPU/RAM/Speicher, Grad Celsius bei GPU),
+  /// ab denen eine Warn-Mail verschickt wird. Nur fuer Leihgeraete vom System-Admin gesetzt.
+  cpuWarningThresholdPercent  Int?
+  ramWarningThresholdPercent  Int?
+  diskWarningThresholdPercent Int?
+  gpuWarningThresholdC        Int?
   /// Zeitpunkt der letzten Warn-Mail, um wiederholten Versand bei dauerhaft
   /// ueberschrittener Grenze zu drosseln.
   warningLastSentAt      DateTime?
@@ -149,6 +152,9 @@ model Device {
   /// Vom System-Admin angefordertes Herunterfahren - wird beim naechsten
   /// Heartbeat an das Geraet ausgeliefert und danach zurueckgesetzt.
   shutdownRequested Boolean @default(false)
+  /// Manuell angefordertes Player-Update (ersetzt den frueheren automatischen
+  /// 10-Minuten-Timer) - wird beim naechsten Heartbeat ausgeliefert und danach zurueckgesetzt.
+  updateRequested   Boolean @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 

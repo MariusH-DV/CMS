@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { UpdateAdminDeviceDto } from './dto/update-admin-device.dto';
 import { SystemAdminOnly } from '../common/decorators/permissions.decorator';
@@ -27,5 +27,10 @@ export class AdminDevicesController {
   @Post(':deviceId/lock')
   lock(@Param('deviceId') deviceId: string) {
     return this.devicesService.lockDevice(deviceId);
+  }
+
+  @Delete(':deviceId')
+  remove(@Param('deviceId') deviceId: string) {
+    return this.devicesService.removeAsAdmin(deviceId);
   }
 }

@@ -7,9 +7,10 @@ import { DeviceWarningScheduler } from './device-warning.scheduler';
 import { TenantsModule } from '../tenants/tenants.module';
 import { BrandingModule } from '../branding/branding.module';
 import { MailModule } from '../mail/mail.module';
+import { PlayerDistributionModule } from '../player-distribution/player-distribution.module';
 
 @Module({
-  imports: [TenantsModule, BrandingModule, MailModule],
+  imports: [TenantsModule, BrandingModule, MailModule, PlayerDistributionModule],
   providers: [DevicesService, DeviceWarningScheduler],
   controllers: [DevicesController, AdminDevicesController, PublicDevicesController],
   exports: [DevicesService],
