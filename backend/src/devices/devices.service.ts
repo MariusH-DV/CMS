@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -111,7 +112,22 @@ export class DevicesService {
   async listForTenant(tenantId: string) {
     return this.prisma.device.findMany({
       where: { tenantId },
-      include: { playlist: true },
+      // Explizite Auswahl statt include/voller Objektrueckgabe: apiToken, pin
+      // und vor allem lockPin duerfen nie an den Mandanten-Kunden gehen - sonst
+      // koennte er sich selbst entsperren und die Vor-Ort-PIN-Sperre waere wirkungslos.
+      select: {
+        id: true,
+        tenantId: true,
+        name: true,
+        status: true,
+        lastSeenAt: true,
+        ipAddress: true,
+        playlistId: true,
+        playlist: true,
+        createdAt: true,
+        isLoaner: true,
+        locked: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -129,7 +145,109 @@ export class DevicesService {
     if (!device) {
       throw new NotFoundException('Geraet nicht gefunden');
     }
+    if (device.isLoaner) {
+      throw new ForbiddenException(
+        'Dieses Geraet ist ein Leihgeraet und kann nicht entfernt werden. Bitte wende dich an den Anbieter.',
+      );
+    }
     await this.prisma.device.delete({ where: { id: deviceId } });
+    return { success: true };
+  }
+
+  /**
+   * Alle Geraete mandantenuebergreifend fuer das System-Admin-Dashboard.
+   * Liefert bewusst KEIN lockPin mit aus - das wird nur einmalig direkt aus
+   * lockDevice() zurueckgegeben, damit es nicht dauerhaft ueber die Liste
+   * abrufbar ist.
+   */
+  async listAllForAdmin() {
+    return this.prisma.device.findMany({
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        lastSeenAt: true,
+        uptimeSeconds: true,
+        cpuLoadPercent: true,
+        memUsedPercent: true,
+        diskUsedPercent: true,
+        gpuAvailable: true,
+        gpuTempC: true,
+        gpuMemMb: true,
+        playerVersion: true,
+        isLoaner: true,
+        warningThresholdPercent: true,
+        locked: true,
+        tenant: { select: { id: true, name: true } },
+      },
+      orderBy: [{ isLoaner: 'desc' }, { name: 'asc' }],
+    });
+  }
+
+  async updateAdminSettings(
+    deviceId: string,
+    data: { isLoaner?: boolean; warningThresholdPercent?: number | null },
+  ) {
+    const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
+    if (!device) {
+      throw new NotFoundException('Geraet nicht gefunden');
+    }
+    return this.prisma.device.update({
+      where: { id: deviceId },
+      data,
+      // Wie listAllForAdmin(): kein lockPin/apiToken/pin in der Antwort.
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        isLoaner: true,
+        warningThresholdPercent: true,
+        locked: true,
+      },
+    });
+  }
+
+  /** Fordert das Herunterfahren eines Leihgeraets an - wird beim naechsten Heartbeat ausgeliefert. */
+  async requestShutdown(deviceId: string) {
+    const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
+    if (!device) {
+      throw new NotFoundException('Geraet nicht gefunden');
+    }
+    if (!device.isLoaner) {
+      throw new BadRequestException('Herunterfahren ist nur fuer Leihgeraete moeglich');
+    }
+    await this.prisma.device.update({ where: { id: deviceId }, data: { shutdownRequested: true } });
+    return { success: true };
+  }
+
+  /**
+   * Sperrt ein Leihgeraet und erzeugt eine neue Vor-Ort-Entsperr-PIN. Es gibt
+   * absichtlich keine Remote-Entsperrung - die PIN muss direkt am Geraet
+   * eingegeben werden (siehe unlockDevice()).
+   */
+  async lockDevice(deviceId: string) {
+    const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
+    if (!device) {
+      throw new NotFoundException('Geraet nicht gefunden');
+    }
+    if (!device.isLoaner) {
+      throw new BadRequestException('Sperren ist nur fuer Leihgeraete moeglich');
+    }
+    const lockPin = this.generatePin();
+    await this.prisma.device.update({ where: { id: deviceId }, data: { locked: true, lockPin } });
+    return { success: true, lockPin };
+  }
+
+  /** Vom Player aufgerufen, wenn vor Ort auf dem Geraet eine PIN zur Entsperrung eingegeben wird. */
+  async unlockDevice(apiToken: string, pin: string) {
+    const device = await this.authenticateDevice(apiToken);
+    if (!device.locked) {
+      return { success: true };
+    }
+    if (!device.lockPin || device.lockPin !== pin) {
+      throw new BadRequestException('Falsche PIN');
+    }
+    await this.prisma.device.update({ where: { id: device.id }, data: { locked: false, lockPin: null } });
     return { success: true };
   }
 
@@ -143,7 +261,12 @@ export class DevicesService {
 
   async heartbeat(apiToken: string, ipAddress?: string, metrics?: HeartbeatDto) {
     const device = await this.authenticateDevice(apiToken);
-    return this.prisma.device.update({
+    // Vor dem Update gemerkt, weil das Update selbst shutdownRequested sofort
+    // zuruecksetzt - der Player soll den Befehl aber genau ein Mal (in dieser
+    // Antwort) sehen, unabhaengig davon, ob das Herunterfahren dann tatsaechlich
+    // gelingt (schlaegt es fehl, kann der System-Admin es einfach erneut anstossen).
+    const wasShutdownRequested = device.shutdownRequested;
+    const updated = await this.prisma.device.update({
       where: { id: device.id },
       data: {
         lastSeenAt: new Date(),
@@ -156,14 +279,24 @@ export class DevicesService {
         gpuTempC: metrics?.gpuTempC,
         gpuMemMb: metrics?.gpuMemMb,
         playerVersion: metrics?.playerVersion,
+        shutdownRequested: false,
       },
-      // Der Player uebernimmt den Namen des tatsaechlich zugeordneten
-      // Mandanten aus der Antwort - der Name im lokal auf dem Pi
-      // gespeicherten player-config.json ist nur der Stand zum Zeitpunkt
-      // der Paket-Erzeugung und kann vom Mandanten abweichen, dem das
-      // Geraet spaeter tatsaechlich per PIN zugeordnet wurde.
-      include: { tenant: { select: { name: true } } },
+      // Bewusst kein voller Objekt-Rueckgabewert (frueher der Fall): apiToken,
+      // pin und vor allem lockPin duerfen nicht an den Player zurueckgehen -
+      // sonst koennte sich ein gesperrtes Geraet die Entsperr-PIN selbst
+      // "vorlesen" statt dass sie vor Ort von Hand eingegeben werden muss.
+      select: {
+        tenantId: true,
+        locked: true,
+        // Der Player uebernimmt den Namen des tatsaechlich zugeordneten
+        // Mandanten aus der Antwort - der Name im lokal auf dem Pi
+        // gespeicherten player-config.json ist nur der Stand zum Zeitpunkt
+        // der Paket-Erzeugung und kann vom Mandanten abweichen, dem das
+        // Geraet spaeter tatsaechlich per PIN zugeordnet wurde.
+        tenant: { select: { name: true } },
+      },
     });
+    return { ...updated, shutdownRequested: wasShutdownRequested };
   }
 
   /** Reduzierter Geraete-Status fuer die Mandanten-Uebersicht (keine sensiblen Felder wie apiToken). */
@@ -182,6 +315,8 @@ export class DevicesService {
         gpuAvailable: true,
         gpuTempC: true,
         playerVersion: true,
+        isLoaner: true,
+        locked: true,
       },
       orderBy: { name: 'asc' },
     });
@@ -235,6 +370,10 @@ export class DevicesService {
 
   async getPlaylistForDevice(apiToken: string) {
     const device = await this.authenticateDevice(apiToken);
+
+    if (device.locked) {
+      return { source: 'locked', playlist: null };
+    }
 
     if (device.tenantId) {
       const tenant = await this.prisma.tenant.findUnique({

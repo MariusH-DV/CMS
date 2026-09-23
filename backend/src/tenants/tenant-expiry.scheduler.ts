@@ -23,5 +23,10 @@ export class TenantExpiryScheduler implements OnModuleInit {
     if (deactivatedCount > 0) {
       this.logger.log(`${deactivatedCount} Mandant(en) wegen abgelaufener Lizenz automatisch deaktiviert`);
     }
+
+    const { warnedCount } = await this.tenantsService.checkExpiringLicenses();
+    if (warnedCount > 0) {
+      this.logger.log(`${warnedCount} Warn-Mail(s) wegen bald ablaufender Lizenz verschickt`);
+    }
   }
 }

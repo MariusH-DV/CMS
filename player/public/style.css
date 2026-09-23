@@ -182,6 +182,42 @@ html, body {
   }
 }
 
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 72px);
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.keypad-btn {
+  width: 72px;
+  height: 72px;
+  font-size: 28px;
+  font-weight: 600;
+  color: #f5f7fb;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.keypad-btn:active {
+  transform: scale(0.94);
+  background: rgba(110, 168, 254, 0.25);
+}
+
+.keypad-btn-wide {
+  font-size: 18px;
+}
+
+.unlock-error {
+  margin-top: 18px;
+  font-size: 18px;
+  color: #ff6b6b;
+  min-height: 24px;
+}
+
 #player-screen {
   position: relative;
   background: #000;

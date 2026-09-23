@@ -9,6 +9,8 @@ import DashboardRedirect from './pages/DashboardRedirect';
 import TenantsPage from './pages/admin/TenantsPage';
 import TenantDetailAdminPage from './pages/admin/TenantDetailAdminPage';
 import GlobalUsersPage from './pages/admin/GlobalUsersPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import MailSettingsPage from './pages/admin/MailSettingsPage';
 import TenantOverviewPage from './pages/tenant/TenantOverviewPage';
 import DevicesPage from './pages/tenant/DevicesPage';
 import MediaPage from './pages/tenant/MediaPage';
@@ -29,9 +31,11 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route path="/" element={<DashboardRedirect />} />
 
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="/admin/tenants" element={<TenantsPage />} />
           <Route path="/admin/tenants/:tenantId" element={<TenantDetailAdminPage />} />
           <Route path="/admin/users" element={<GlobalUsersPage />} />
+          <Route path="/admin/mail-settings" element={<MailSettingsPage />} />
 
           <Route path="/tenants/:tenantId" element={<TenantOverviewPage />} />
 

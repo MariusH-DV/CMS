@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { DevicesService } from './devices.service';
 import { PairingRequestDto } from './dto/pairing-request.dto';
 import { HeartbeatDto } from './dto/heartbeat.dto';
+import { UnlockDeviceDto } from './dto/unlock-device.dto';
 import { Public } from '../common/decorators/public.decorator';
 
 /**
@@ -57,5 +58,14 @@ export class PublicDevicesController {
       throw new UnauthorizedException('x-device-token Header fehlt');
     }
     return this.devicesService.heartbeat(token, ip, metrics);
+  }
+
+  /** Vor-Ort-Entsperrung: die PIN wird direkt am Geraet (Kiosk-Bildschirm) eingegeben. */
+  @Post('unlock')
+  unlock(@Body() dto: UnlockDeviceDto, @Headers('x-device-token') token?: string) {
+    if (!token) {
+      throw new UnauthorizedException('x-device-token Header fehlt');
+    }
+    return this.devicesService.unlockDevice(token, dto.pin);
   }
 }

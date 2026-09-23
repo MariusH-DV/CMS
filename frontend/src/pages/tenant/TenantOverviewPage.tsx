@@ -150,11 +150,21 @@ export default function TenantOverviewPage() {
                 <div key={d.id} className="flex items-center gap-4 border-t border-slate-100 pt-3 first:border-0 first:pt-0">
                   <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${online ? 'bg-green-500' : 'bg-slate-300'}`} />
                   <div className="w-40 shrink-0">
-                    <div className="text-sm font-medium text-slate-800 truncate">{d.name}</div>
+                    <div className="text-sm font-medium text-slate-800 truncate flex items-center gap-1.5">
+                      {d.name}
+                      {d.locked && (
+                        <i className="fa-solid fa-lock text-red-500" title="Gesperrt - Entsperrung nur vor Ort per PIN" />
+                      )}
+                    </div>
                     <div className="text-xs text-slate-400">
                       {online ? `Uptime ${formatUptime(d.uptimeSeconds)}` : 'Offline'}
                     </div>
                   </div>
+                  {d.locked && (
+                    <span className="badge bg-red-50 text-red-700 shrink-0">
+                      <i className="fa-solid fa-lock mr-1" /> Gesperrt
+                    </span>
+                  )}
                   {online ? (
                     <div className="flex flex-1 flex-wrap items-center gap-4">
                       <UsageBar label="CPU" percent={d.cpuLoadPercent} />

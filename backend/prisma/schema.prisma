@@ -60,6 +60,9 @@ model License {
   active       Boolean   @default(true)
   /// Zusatzlizenz: erlaubt dem Mandanten, ein eigenes Logo (Web-UI + Pi) zu hinterlegen
   brandingEnabled Boolean @default(false)
+  /// Zeitpunkt der Warn-Mail "Laeuft bald ab" - verhindert wiederholten Versand.
+  /// Wird zurueckgesetzt, sobald validUntil wieder verlaengert wird (siehe TenantsService).
+  expiryWarningSentAt DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -128,12 +131,49 @@ model Device {
   gpuMemMb         Int?
   /// Hash der aktuell auf dem Pi laufenden Player-Version (siehe Auto-Updater)
   playerVersion    String?
+  /// Leihgeraet (vom System-Admin vermietet/verliehen): kann vom Mandanten nicht
+  /// geloescht werden, ausserdem vom System-Admin abschaltbar/sperrbar.
+  isLoaner         Boolean  @default(false)
+  /// Warngrenze (Prozent) fuer CPU/RAM/Speicher-Auslastung, ab der eine Warn-Mail
+  /// verschickt wird. Nur fuer Leihgeraete vom System-Admin gesetzt.
+  warningThresholdPercent Int?
+  /// Zeitpunkt der letzten Warn-Mail, um wiederholten Versand bei dauerhaft
+  /// ueberschrittener Grenze zu drosseln.
+  warningLastSentAt      DateTime?
+  /// Gesperrt durch den System-Admin (Leihgeraete). Waehrend der Sperre liefert
+  /// der Player keine Playlist aus, sondern zeigt einen Sperrbildschirm.
+  locked           Boolean  @default(false)
+  /// PIN zur Vor-Ort-Entsperrung auf dem Geraet selbst - wird im System-Admin
+  /// Dashboard angezeigt. Es gibt bewusst keine Remote-Entsperrung.
+  lockPin          String?
+  /// Vom System-Admin angefordertes Herunterfahren - wird beim naechsten
+  /// Heartbeat an das Geraet ausgeliefert und danach zurueckgesetzt.
+  shutdownRequested Boolean @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   schedules Schedule[]
 
   @@map("devices")
+}
+
+/// SMTP-Einstellungen fuer den Mailversand kritischer Meldungen (Singleton:
+/// es existiert immer hoechstens eine Zeile).
+model MailSettings {
+  id                  String   @id @default(uuid())
+  enabled             Boolean  @default(false)
+  host                String?
+  port                Int      @default(587)
+  secure              Boolean  @default(false)
+  username            String?
+  password            String?
+  fromAddress         String?
+  fromName            String?
+  /// Empfaenger fuer kritische Meldungen (Warngrenzen, Lizenzablauf)
+  alertRecipientEmail String?
+  updatedAt           DateTime @updatedAt
+
+  @@map("mail_settings")
 }
 
 /// Hochgeladene Mediendatei (Bild/Video) eines Mandanten

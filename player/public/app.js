@@ -6,6 +6,7 @@
     error: document.getElementById('error-screen'),
     player: document.getElementById('player-screen'),
     deactivated: document.getElementById('deactivated-screen'),
+    locked: document.getElementById('locked-screen'),
   };
   const pinEl = document.getElementById('pin');
   const pairingTenantEl = document.getElementById('pairing-tenant');
@@ -16,6 +17,9 @@
   const imgEl = document.getElementById('media-image');
   const videoEl = document.getElementById('media-video');
   const brandLogoEls = [document.getElementById('pairing-logo'), document.getElementById('empty-logo')];
+  const unlockPinEl = document.getElementById('unlock-pin');
+  const unlockKeypadEl = document.getElementById('unlock-keypad');
+  const unlockErrorEl = document.getElementById('unlock-error');
 
   /**
    * Prueft, ob ein eigenes Branding-Logo verfuegbar ist, und schaltet dann
@@ -130,6 +134,79 @@
     });
   }
 
+  // Vor-Ort-Entsperrung fuer gesperrte Leihgeraete: PIN wird ausschliesslich
+  // ueber diesen Zahlenblock am Geraet selbst eingegeben, nie ferngesteuert.
+  const LOCK_PIN_LENGTH = 6;
+  let unlockEntry = '';
+  let unlockSubmitting = false;
+
+  function renderUnlockEntry() {
+    unlockPinEl.innerHTML = '';
+    for (let i = 0; i < LOCK_PIN_LENGTH; i += 1) {
+      const span = document.createElement('span');
+      span.textContent = unlockEntry[i] ? '*' : '';
+      span.className = 'pin-digit';
+      unlockPinEl.appendChild(span);
+    }
+  }
+
+  async function submitUnlock() {
+    if (unlockSubmitting) return;
+    unlockSubmitting = true;
+    try {
+      const res = await fetch('/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: unlockEntry }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        unlockErrorEl.textContent = data.error || 'Falsche PIN, bitte erneut versuchen.';
+        unlockEntry = '';
+        renderUnlockEntry();
+      } else {
+        unlockErrorEl.textContent = '';
+        unlockEntry = '';
+      }
+    } catch (err) {
+      unlockErrorEl.textContent = 'Player-Dienst nicht erreichbar: ' + err.message;
+      unlockEntry = '';
+      renderUnlockEntry();
+    } finally {
+      unlockSubmitting = false;
+    }
+  }
+
+  function pressKey(key) {
+    if (key === 'clear') {
+      unlockEntry = '';
+      unlockErrorEl.textContent = '';
+      renderUnlockEntry();
+      return;
+    }
+    if (key === 'back') {
+      unlockEntry = unlockEntry.slice(0, -1);
+      renderUnlockEntry();
+      return;
+    }
+    if (unlockEntry.length >= LOCK_PIN_LENGTH) return;
+    unlockEntry += key;
+    renderUnlockEntry();
+    if (unlockEntry.length === LOCK_PIN_LENGTH) {
+      submitUnlock();
+    }
+  }
+
+  ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'back'].forEach((key) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'keypad-btn' + (key === 'clear' || key === 'back' ? ' keypad-btn-wide' : '');
+    btn.textContent = key === 'clear' ? 'Leeren' : key === 'back' ? '⌫' : key;
+    btn.addEventListener('click', () => pressKey(key));
+    unlockKeypadEl.appendChild(btn);
+  });
+  renderUnlockEntry();
+
   let previousMode = null;
   let successUntil = 0;
   const SUCCESS_SCREEN_MS = 2200;
@@ -156,6 +233,11 @@
       renderPin(status.pin);
       pairingTenantEl.textContent = status.tenantName || '';
       showScreen('pairing');
+      return;
+    }
+
+    if (status.locked) {
+      showScreen('locked');
       return;
     }
 

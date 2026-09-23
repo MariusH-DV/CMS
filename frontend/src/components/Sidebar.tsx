@@ -42,7 +42,8 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <aside className="w-64 shrink-0 border-r border-white/60 bg-white/50 backdrop-blur-xl p-4 flex flex-col gap-6">
+    <aside className="w-64 shrink-0 border-r border-white/60 bg-white/50 backdrop-blur-xl flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
       <div className="flex items-center gap-2 px-2 py-1">
         <img
           src={useCustomLogo ? `/api/tenants/${tenantId}/branding/logo?t=${logoCacheKey}` : logo}
@@ -59,11 +60,17 @@ export default function Sidebar() {
             System-Admin
           </div>
           <nav className="flex flex-col gap-1">
+            <NavLink to="/admin/dashboard" className={navClass}>
+              <i className="fa-solid fa-gauge-high w-4" /> Dashboard
+            </NavLink>
             <NavLink to="/admin/tenants" className={navClass}>
               <i className="fa-solid fa-building w-4" /> Mandanten
             </NavLink>
             <NavLink to="/admin/users" className={navClass}>
               <i className="fa-solid fa-users-gear w-4" /> Benutzer
+            </NavLink>
+            <NavLink to="/admin/mail-settings" className={navClass}>
+              <i className="fa-solid fa-envelope w-4" /> Mailserver
             </NavLink>
           </nav>
         </div>
@@ -127,8 +134,9 @@ export default function Sidebar() {
           </nav>
         </div>
       )}
+      </div>
 
-      <div className="mt-auto px-2 pt-3 border-t border-white/50 text-center text-xs text-slate-400 flex flex-col gap-1">
+      <div className="shrink-0 px-2 py-3 border-t border-white/50 text-center text-xs text-slate-400 flex flex-col gap-1">
         <div>Version {version ?? '...'}</div>
         <div className="flex justify-center gap-3">
           <Link to="/impressum" className="hover:text-slate-600">
