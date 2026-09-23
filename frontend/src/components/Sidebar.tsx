@@ -20,6 +20,12 @@ export default function Sidebar() {
 
   const currentMembership = user?.memberships.find((m) => m.tenantId === tenantId);
   const tenantActive = currentMembership?.tenant?.active ?? true;
+  const [customLogoFailed, setCustomLogoFailed] = useState(false);
+  const useCustomLogo = Boolean(tenantId) && !customLogoFailed;
+
+  useEffect(() => {
+    setCustomLogoFailed(false);
+  }, [tenantId]);
 
   useEffect(() => {
     apiClient
@@ -31,7 +37,12 @@ export default function Sidebar() {
   return (
     <aside className="w-64 shrink-0 border-r border-white/60 bg-white/50 backdrop-blur-xl p-4 flex flex-col gap-6">
       <div className="flex items-center gap-2 px-2 py-1">
-        <img src={logo} alt="Logo" className="h-8 w-8 rounded-md object-cover" />
+        <img
+          src={useCustomLogo ? `/api/tenants/${tenantId}/branding/logo` : logo}
+          alt="Logo"
+          className="h-8 w-8 rounded-md object-cover"
+          onError={() => setCustomLogoFailed(true)}
+        />
         <span className="font-semibold text-slate-800">Zentrale CMS</span>
       </div>
 

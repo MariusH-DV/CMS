@@ -58,6 +58,8 @@ model License {
   validFrom    DateTime  @default(now())
   validUntil   DateTime?
   active       Boolean   @default(true)
+  /// Zusatzlizenz: erlaubt dem Mandanten, ein eigenes Logo (Web-UI + Pi) zu hinterlegen
+  brandingEnabled Boolean @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -116,6 +118,14 @@ model Device {
   wlanSsid     String?
   playlist     Playlist?     @relation(fields: [playlistId], references: [id])
   playlistId   String?
+  /// Systemlaufzeit des Pi in Sekunden (os.uptime()), zuletzt gemeldet per Heartbeat
+  uptimeSeconds    Int?
+  cpuLoadPercent   Float?
+  memUsedPercent   Float?
+  diskUsedPercent  Float?
+  gpuAvailable     Boolean  @default(false)
+  gpuTempC         Float?
+  gpuMemMb         Int?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 

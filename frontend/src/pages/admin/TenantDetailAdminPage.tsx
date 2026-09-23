@@ -11,6 +11,7 @@ export default function TenantDetailAdminPage() {
   const [maxUsers, setMaxUsers] = useState(0);
   const [maxStorageMb, setMaxStorageMb] = useState(0);
   const [validUntil, setValidUntil] = useState('');
+  const [brandingEnabled, setBrandingEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showDeactivateForm, setShowDeactivateForm] = useState(false);
@@ -23,6 +24,7 @@ export default function TenantDetailAdminPage() {
       setMaxUsers(res.data.license?.maxUsers ?? 5);
       setMaxStorageMb(res.data.license?.maxStorageMb ?? 1024);
       setValidUntil(res.data.license?.validUntil?.slice(0, 10) ?? '');
+      setBrandingEnabled(res.data.license?.brandingEnabled ?? false);
     });
   }
 
@@ -39,6 +41,7 @@ export default function TenantDetailAdminPage() {
         maxStorageMb,
         validUntil: validUntil || undefined,
         active: true,
+        brandingEnabled,
       });
       load();
     } catch (err) {
@@ -173,6 +176,16 @@ export default function TenantDetailAdminPage() {
             onChange={(e) => setValidUntil(e.target.value)}
           />
         </div>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={brandingEnabled}
+            onChange={(e) => setBrandingEnabled(e.target.checked)}
+          />
+          <span>
+            <i className="fa-solid fa-image mr-1 text-brand-500" /> Branding (eigenes Logo) freischalten
+          </span>
+        </label>
         {error && <div className="text-sm text-red-600">{error}</div>}
         <div>
           <button type="submit" disabled={saving} className="btn-primary">

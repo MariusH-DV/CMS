@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/commo
 import { DevicesService } from './devices.service';
 import { ClaimDeviceDto } from './dto/claim-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
-import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { RequirePermissions, RequireTenantMembership } from '../common/decorators/permissions.decorator';
 import { PERMISSIONS } from '../common/permissions.constants';
 
 /** Geraeteverwaltung innerhalb eines Mandanten. */
@@ -14,6 +14,15 @@ export class DevicesController {
   @Get()
   list(@Param('tenantId') tenantId: string) {
     return this.devicesService.listForTenant(tenantId);
+  }
+
+  // Reduzierter Status (kein apiToken etc.) fuer die Uebersichtsseite - dort
+  // darf jedes Mandanten-Mitglied Uptime/Auslastung sehen, nicht nur wer
+  // DEVICES_MANAGE hat.
+  @RequireTenantMembership()
+  @Get('status')
+  status(@Param('tenantId') tenantId: string) {
+    return this.devicesService.getStatusForTenant(tenantId);
   }
 
   @RequirePermissions(PERMISSIONS.DEVICES_MANAGE)

@@ -20,4 +20,8 @@ export class UpsertLicenseDto {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  brandingEnabled?: boolean;
 }

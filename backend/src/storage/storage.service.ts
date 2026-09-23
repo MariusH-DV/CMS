@@ -3,6 +3,18 @@ import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const EXT_MIME_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+};
+
+function mimeTypeForExt(ext: string): string {
+  return EXT_MIME_TYPES[ext.toLowerCase()] ?? 'application/octet-stream';
+}
+
 /**
  * Verwaltet die getrennte Ordnerstruktur je Mandant auf dem Dateisystem:
  * <STORAGE_ROOT>/<tenant-slug>/media
@@ -23,7 +35,7 @@ export class StorageService {
 
   createTenantFolders(slug: string): string {
     const tenantRoot = this.getTenantRoot(slug);
-    for (const sub of ['media', 'provisioning']) {
+    for (const sub of ['media', 'provisioning', 'branding']) {
       fs.mkdirSync(path.join(tenantRoot, sub), { recursive: true });
     }
     return tenantRoot;
@@ -33,6 +45,38 @@ export class StorageService {
     const dir = path.join(this.getTenantRoot(slug), 'media');
     fs.mkdirSync(dir, { recursive: true });
     return dir;
+  }
+
+  getBrandingDir(slug: string): string {
+    const dir = path.join(this.getTenantRoot(slug), 'branding');
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+  }
+
+  /** Ueberschreibt das Branding-Logo eines Mandanten (entfernt vorherige Dateien mit anderer Endung). */
+  saveBrandingLogo(slug: string, buffer: Buffer, ext: string): { fileName: string; mimeType: string } {
+    const dir = this.getBrandingDir(slug);
+    this.removeBrandingLogo(slug);
+    const fileName = `logo${ext}`;
+    fs.writeFileSync(path.join(dir, fileName), buffer);
+    return { fileName, mimeType: mimeTypeForExt(ext) };
+  }
+
+  /** Liefert Pfad + MIME-Type des Branding-Logos, falls eines hinterlegt ist. */
+  getBrandingLogo(slug: string): { path: string; mimeType: string } | null {
+    const dir = this.getBrandingDir(slug);
+    const entry = fs.readdirSync(dir).find((f) => f.startsWith('logo.'));
+    if (!entry) return null;
+    return { path: path.join(dir, entry), mimeType: mimeTypeForExt(path.extname(entry)) };
+  }
+
+  removeBrandingLogo(slug: string): void {
+    const dir = this.getBrandingDir(slug);
+    for (const entry of fs.readdirSync(dir)) {
+      if (entry.startsWith('logo.')) {
+        fs.rmSync(path.join(dir, entry), { force: true });
+      }
+    }
   }
 
   getProvisioningDir(slug: string): string {
