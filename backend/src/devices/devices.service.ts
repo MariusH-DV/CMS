@@ -12,6 +12,10 @@ import { ClaimDeviceDto } from './dto/claim-device.dto';
 import { HeartbeatDto } from './dto/heartbeat.dto';
 import { BrandingService } from '../branding/branding.service';
 
+// Player sendet alle 30s einen Heartbeat - 90s Toleranz fuer einen einzelnen
+// verpassten/verzoegerten Heartbeat, bevor ein Geraet als offline gilt.
+const DEVICE_ONLINE_THRESHOLD_MS = 90 * 1000;
+
 @Injectable()
 export class DevicesService {
   constructor(
@@ -151,13 +155,14 @@ export class DevicesService {
         gpuAvailable: metrics?.gpuAvailable,
         gpuTempC: metrics?.gpuTempC,
         gpuMemMb: metrics?.gpuMemMb,
+        playerVersion: metrics?.playerVersion,
       },
     });
   }
 
   /** Reduzierter Geraete-Status fuer die Mandanten-Uebersicht (keine sensiblen Felder wie apiToken). */
   async getStatusForTenant(tenantId: string) {
-    return this.prisma.device.findMany({
+    const devices = await this.prisma.device.findMany({
       where: { tenantId },
       select: {
         id: true,
@@ -170,9 +175,20 @@ export class DevicesService {
         diskUsedPercent: true,
         gpuAvailable: true,
         gpuTempC: true,
+        playerVersion: true,
       },
       orderBy: { name: 'asc' },
     });
+    // "online" hier serverseitig mit der Server-Uhrzeit berechnen statt dem
+    // Frontend einen rohen Zeitstempel zu geben, den es gegen die eigene
+    // (moeglicherweise abweichende) Client-Uhr vergleichen muesste - das hat
+    // bereits einmal zu einem falschen "offline" durch eine vorgehende
+    // Laptop-Uhr gefuehrt.
+    const now = Date.now();
+    return devices.map((d) => ({
+      ...d,
+      online: d.lastSeenAt ? now - d.lastSeenAt.getTime() < DEVICE_ONLINE_THRESHOLD_MS : false,
+    }));
   }
 
   /**

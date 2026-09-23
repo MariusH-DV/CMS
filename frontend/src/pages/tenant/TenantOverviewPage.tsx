@@ -4,8 +4,6 @@ import { apiClient, apiErrorMessage } from '../../api/client';
 import { DeviceStatusInfo, PERMISSIONS, Tenant } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 
-const ONLINE_THRESHOLD_MS = 90 * 1000;
-
 function formatUptime(seconds: number | null): string {
   if (seconds == null) return '-';
   const days = Math.floor(seconds / 86400);
@@ -14,11 +12,6 @@ function formatUptime(seconds: number | null): string {
   if (days > 0) return `${days} Tag${days === 1 ? '' : 'e'} ${hours} Std`;
   if (hours > 0) return `${hours} Std ${minutes} Min`;
   return `${minutes} Min`;
-}
-
-function isOnline(device: DeviceStatusInfo): boolean {
-  if (!device.lastSeenAt) return false;
-  return Date.now() - new Date(device.lastSeenAt).getTime() < ONLINE_THRESHOLD_MS;
 }
 
 export default function TenantOverviewPage() {
@@ -152,7 +145,7 @@ export default function TenantOverviewPage() {
           </h2>
           <div className="flex flex-col gap-3">
             {devices.map((d) => {
-              const online = isOnline(d);
+              const online = d.online;
               return (
                 <div key={d.id} className="flex items-center gap-4 border-t border-slate-100 pt-3 first:border-0 first:pt-0">
                   <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${online ? 'bg-green-500' : 'bg-slate-300'}`} />
@@ -163,13 +156,18 @@ export default function TenantOverviewPage() {
                     </div>
                   </div>
                   {online ? (
-                    <div className="flex flex-1 flex-wrap gap-4">
+                    <div className="flex flex-1 flex-wrap items-center gap-4">
                       <UsageBar label="CPU" percent={d.cpuLoadPercent} />
                       <UsageBar label="RAM" percent={d.memUsedPercent} />
                       <UsageBar label="Speicher" percent={d.diskUsedPercent} />
                       {d.gpuAvailable && d.gpuTempC != null && (
                         <div className="text-xs text-slate-500 flex items-center gap-1">
                           <i className="fa-solid fa-temperature-half text-slate-400" /> GPU {d.gpuTempC.toFixed(0)}&deg;C
+                        </div>
+                      )}
+                      {d.playerVersion && (
+                        <div className="text-xs text-slate-400 flex items-center gap-1 ml-auto">
+                          <i className="fa-solid fa-code-branch" /> v{d.playerVersion}
                         </div>
                       )}
                     </div>
