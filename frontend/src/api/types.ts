@@ -68,12 +68,14 @@ export interface DeviceStatusInfo {
   name: string;
   status: DeviceStatus;
   lastSeenAt: string | null;
+  online: boolean;
   uptimeSeconds: number | null;
   cpuLoadPercent: number | null;
   memUsedPercent: number | null;
   diskUsedPercent: number | null;
   gpuAvailable: boolean;
   gpuTempC: number | null;
+  playerVersion: string | null;
 }
 
 export interface MediaAsset {

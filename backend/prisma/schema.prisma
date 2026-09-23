@@ -126,6 +126,8 @@ model Device {
   gpuAvailable     Boolean  @default(false)
   gpuTempC         Float?
   gpuMemMb         Int?
+  /// Hash der aktuell auf dem Pi laufenden Player-Version (siehe Auto-Updater)
+  playerVersion    String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 

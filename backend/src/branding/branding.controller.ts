@@ -2,7 +2,6 @@ import {
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
   Post,
   Res,
@@ -11,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
-import * as fs from 'fs';
 import { BrandingService } from './branding.service';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { PERMISSIONS } from '../common/permissions.constants';
@@ -36,15 +34,19 @@ export class BrandingController {
 
   // Oeffentlich, damit ein <img src="..."> in der Sidebar ohne JWT laden kann
   // (gleiches Muster wie das Medien-Streaming in MediaController).
+  //
+  // "no-cache" statt einer festen max-age-Dauer: der Browser MUSS bei jedem
+  // Laden erneut beim Server nachfragen (per ETag/Last-Modified, die
+  // res.sendFile automatisch setzt), statt eine evtl. laengst veraltete
+  // Kopie zu zeigen - wichtig, weil sich das Logo (Neu-Upload) oder die
+  // Sichtbarkeit (Branding-Lizenz entzogen -> 404) sich jederzeit aendern
+  // kann. res.sendFile() antwortet dann selbst mit 304, wenn sich am Inhalt
+  // nichts geaendert hat - kein unnoetiger erneuter Download.
   @Public()
   @Get('logo')
   async serve(@Param('tenantId') tenantId: string, @Res() res: Response) {
     const logo = await this.brandingService.getLogoByTenantId(tenantId);
-    if (!logo) {
-      throw new NotFoundException('Kein Logo hinterlegt');
-    }
-    res.setHeader('Content-Type', logo.mimeType);
-    res.setHeader('Cache-Control', 'public, max-age=300');
-    fs.createReadStream(logo.path).pipe(res);
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(logo.path);
   }
 }

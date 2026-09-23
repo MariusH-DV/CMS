@@ -1,6 +1,5 @@
 import { Controller, Get, Headers, NotFoundException, Param, Post, Body, Res, UnauthorizedException } from '@nestjs/common';
 import { Response } from 'express';
-import * as fs from 'fs';
 import { DevicesService } from './devices.service';
 import { PairingRequestDto } from './dto/pairing-request.dto';
 import { HeartbeatDto } from './dto/heartbeat.dto';
@@ -43,9 +42,9 @@ export class PublicDevicesController {
     if (!logo) {
       throw new NotFoundException('Kein Branding-Logo hinterlegt');
     }
-    res.setHeader('Content-Type', logo.mimeType);
-    res.setHeader('Cache-Control', 'public, max-age=300');
-    fs.createReadStream(logo.path).pipe(res);
+    // "no-cache" statt max-age, siehe Kommentar in BrandingController.serve().
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(logo.path);
   }
 
   @Post('heartbeat')

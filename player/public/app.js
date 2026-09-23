@@ -13,6 +13,31 @@
   const deactivatedReasonEl = document.getElementById('deactivated-reason');
   const imgEl = document.getElementById('media-image');
   const videoEl = document.getElementById('media-video');
+  const brandLogoEls = [document.getElementById('pairing-logo'), document.getElementById('empty-logo')];
+
+  /**
+   * Prueft, ob ein eigenes Branding-Logo verfuegbar ist, und schaltet dann
+   * darauf um (sonst bleibt/faellt es auf das Standard-Logo zurueck). Wird
+   * wiederholt aufgerufen statt nur einmal beim Laden der Seite zu pruefen -
+   * das Logo kann erst kurz NACH dem ersten Seitenaufruf vom Server geladen
+   * worden sein (der Player-Dienst holt es asynchron im Hintergrund), ein
+   * einmaliger Versuch wuerde in diesem Fall dauerhaft beim Standard-Logo
+   * bleiben, obwohl kurz danach ein eigenes verfuegbar waere.
+   */
+  function refreshBrandLogo() {
+    const probe = new Image();
+    probe.onload = () => {
+      brandLogoEls.forEach((el) => {
+        if (el.src.indexOf('/branding-logo') === -1) el.src = '/branding-logo';
+      });
+    };
+    probe.onerror = () => {
+      brandLogoEls.forEach((el) => {
+        if (el.src.indexOf('/static/logo.png') === -1) el.src = '/static/logo.png';
+      });
+    };
+    probe.src = '/branding-logo';
+  }
 
   function showScreen(name) {
     Object.entries(screens).forEach(([key, el]) => {
@@ -142,4 +167,7 @@
 
   refreshStatus();
   setInterval(refreshStatus, 2000);
+
+  refreshBrandLogo();
+  setInterval(refreshBrandLogo, 10000);
 })();

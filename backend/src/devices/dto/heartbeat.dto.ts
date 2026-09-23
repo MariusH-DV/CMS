@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsOptional } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 /** Optionale Systemmetriken, die der Player bei jedem Heartbeat mitschickt. */
 export class HeartbeatDto {
@@ -29,4 +29,8 @@ export class HeartbeatDto {
   @IsOptional()
   @IsNumber()
   gpuMemMb?: number;
+
+  @IsOptional()
+  @IsString()
+  playerVersion?: string;
 }

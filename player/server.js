@@ -11,6 +11,10 @@ const CONFIG_PATH = process.env.PLAYER_CONFIG || path.join(__dirname, 'config', 
 const DATA_DIR = path.join(__dirname, 'data');
 const TOKEN_FILE = path.join(DATA_DIR, 'device-token.json');
 const HARDWARE_FILE = path.join(DATA_DIR, 'hardware-id.json');
+// Wird vom Auto-Updater (siehe player-update-check.sh.tpl) nach jedem
+// Update geschrieben - fehlt sie (z.B. lokale Entwicklung oder ein Geraet,
+// das den Updater noch nicht hat), wird einfach keine Version gemeldet.
+const VERSION_FILE = path.join(__dirname, '.player-version');
 const PORT = process.env.PLAYER_PORT ? Number(process.env.PLAYER_PORT) : 8088;
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -220,6 +224,12 @@ function collectMetrics() {
   const metrics = { uptimeSeconds: Math.round(os.uptime()) };
 
   try {
+    metrics.playerVersion = fs.readFileSync(VERSION_FILE, 'utf-8').trim() || undefined;
+  } catch (_err) {
+    // Version(sdatei) nicht vorhanden - Geraet hat den Auto-Updater noch nicht
+  }
+
+  try {
     const cpuCount = os.cpus().length || 1;
     const load1 = os.loadavg()[0];
     metrics.cpuLoadPercent = Math.min(100, Math.round((load1 / cpuCount) * 1000) / 10);
@@ -317,7 +327,10 @@ app.get('/branding-logo', (_req, res) => {
     res.status(404).end();
     return;
   }
-  res.sendFile(path.join(DATA_DIR, fileName));
+  // Immer neu validieren (ETag/Last-Modified werden von sendFile automatisch
+  // gesetzt), damit Chromium nach einem Logo-Wechsel nicht die alte Version
+  // aus dem Cache weiterzeigt.
+  res.sendFile(path.join(DATA_DIR, fileName), { headers: { 'Cache-Control': 'no-cache' } });
 });
 
 app.get('/status', (_req, res) => {
