@@ -146,4 +146,24 @@ export class TenantsService {
       );
     }
   }
+
+  /**
+   * Deaktiviert automatisch alle noch aktiven Mandanten, deren Lizenz-Gueltigkeit
+   * ("Gueltig bis") bereits abgelaufen ist, und setzt den Deaktivierungsgrund.
+   * Wird periodisch vom TenantExpiryScheduler aufgerufen.
+   */
+  async deactivateExpiredTenants() {
+    const expired = await this.prisma.tenant.findMany({
+      where: { active: true, license: { validUntil: { lt: new Date() } } },
+      select: { id: true },
+    });
+    if (expired.length === 0) {
+      return { deactivatedCount: 0 };
+    }
+    await this.prisma.tenant.updateMany({
+      where: { id: { in: expired.map((t) => t.id) } },
+      data: { active: false, deactivationReason: 'Automatisches Vertragsende' },
+    });
+    return { deactivatedCount: expired.length };
+  }
 }
