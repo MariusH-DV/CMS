@@ -9,7 +9,7 @@ WORKDIR /repo
 # Engine-Binary - das fuehrt zu einem sonst schwer verstaendlichen
 # "Schema engine error" beim Start. Debian Bookworm hat tatsaechlich
 # OpenSSL 3.0.x, daher hier explizit installieren.
-RUN apt-get update -y && apt-get install -y --no-install-recommends openssl \
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl git \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package.json ./
@@ -24,6 +24,17 @@ COPY player player
 
 RUN npm run prisma:generate --workspace backend
 RUN npm run build --workspace backend
+
+# Kurzer Commit-Hash, damit die im Frontend angezeigte Version sich bei jedem
+# Deploy tatsaechlich aendert (die manuelle Versionsnummer in package.json
+# wird nicht bei jeder Aenderung erhoeht). Der fertige Container selbst hat
+# kein .git mehr - nur diese eine Zeile wird in die Runtime-Stage uebernommen.
+# ".git" ist nur vorhanden, wenn aus einem echten Git-Checkout gebaut wird
+# (z.B. nicht bei "docker build" aus einem heruntergeladenen Zip) - dann
+# faellt app.controller.ts zur Laufzeit auf die reine package.json-Version
+# zurueck.
+COPY .git .git
+RUN git rev-parse --short HEAD > /repo/GIT_SHA 2>/dev/null || echo -n "" > /repo/GIT_SHA
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /repo
@@ -48,6 +59,7 @@ ENV NODE_ENV=production
 
 COPY --from=build /repo/backend/dist backend/dist
 COPY --from=build /repo/node_modules/.prisma node_modules/.prisma
+COPY --from=build /repo/GIT_SHA GIT_SHA
 COPY pi-image pi-image
 COPY player player
 
