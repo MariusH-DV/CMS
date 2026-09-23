@@ -26,6 +26,7 @@ export interface License {
   validFrom: string;
   validUntil: string | null;
   active: boolean;
+  brandingEnabled: boolean;
 }
 
 export interface Tenant {
@@ -60,6 +61,19 @@ export interface Device {
   playlistId: string | null;
   playlist?: Playlist | null;
   createdAt: string;
+}
+
+export interface DeviceStatusInfo {
+  id: string;
+  name: string;
+  status: DeviceStatus;
+  lastSeenAt: string | null;
+  uptimeSeconds: number | null;
+  cpuLoadPercent: number | null;
+  memUsedPercent: number | null;
+  diskUsedPercent: number | null;
+  gpuAvailable: boolean;
+  gpuTempC: number | null;
 }
 
 export interface MediaAsset {

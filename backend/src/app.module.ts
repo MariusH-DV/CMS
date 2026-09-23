@@ -13,6 +13,8 @@ import { MediaModule } from './media/media.module';
 import { PlaylistsModule } from './playlists/playlists.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { ProvisioningModule } from './provisioning/provisioning.module';
+import { BrandingModule } from './branding/branding.module';
+import { PlayerDistributionModule } from './player-distribution/player-distribution.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 
@@ -30,6 +32,8 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     PlaylistsModule,
     SchedulesModule,
     ProvisioningModule,
+    BrandingModule,
+    PlayerDistributionModule,
   ],
   controllers: [AppController],
   providers: [

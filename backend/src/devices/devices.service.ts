@@ -9,12 +9,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TenantsService } from '../tenants/tenants.service';
 import { PairingRequestDto } from './dto/pairing-request.dto';
 import { ClaimDeviceDto } from './dto/claim-device.dto';
+import { HeartbeatDto } from './dto/heartbeat.dto';
+import { BrandingService } from '../branding/branding.service';
 
 @Injectable()
 export class DevicesService {
   constructor(
     private prisma: PrismaService,
     private tenantsService: TenantsService,
+    private brandingService: BrandingService,
   ) {}
 
   private generatePin(): string {
@@ -134,11 +137,41 @@ export class DevicesService {
     return device;
   }
 
-  async heartbeat(apiToken: string, ipAddress?: string) {
+  async heartbeat(apiToken: string, ipAddress?: string, metrics?: HeartbeatDto) {
     const device = await this.authenticateDevice(apiToken);
     return this.prisma.device.update({
       where: { id: device.id },
-      data: { lastSeenAt: new Date(), ipAddress },
+      data: {
+        lastSeenAt: new Date(),
+        ipAddress,
+        uptimeSeconds: metrics?.uptimeSeconds,
+        cpuLoadPercent: metrics?.cpuLoadPercent,
+        memUsedPercent: metrics?.memUsedPercent,
+        diskUsedPercent: metrics?.diskUsedPercent,
+        gpuAvailable: metrics?.gpuAvailable,
+        gpuTempC: metrics?.gpuTempC,
+        gpuMemMb: metrics?.gpuMemMb,
+      },
+    });
+  }
+
+  /** Reduzierter Geraete-Status fuer die Mandanten-Uebersicht (keine sensiblen Felder wie apiToken). */
+  async getStatusForTenant(tenantId: string) {
+    return this.prisma.device.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        lastSeenAt: true,
+        uptimeSeconds: true,
+        cpuLoadPercent: true,
+        memUsedPercent: true,
+        diskUsedPercent: true,
+        gpuAvailable: true,
+        gpuTempC: true,
+      },
+      orderBy: { name: 'asc' },
     });
   }
 
@@ -213,5 +246,21 @@ export class DevicesService {
     }
 
     return { source: 'none', playlist: null };
+  }
+
+  /** Liefert das Branding-Logo des Mandanten fuer den Pi-Player, falls Branding freigeschaltet und ein Logo hinterlegt ist. */
+  async getLogoForDevice(apiToken: string) {
+    const device = await this.authenticateDevice(apiToken);
+    if (!device.tenantId) {
+      return null;
+    }
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: device.tenantId },
+      include: { license: true },
+    });
+    if (!tenant) {
+      return null;
+    }
+    return this.brandingService.getLogoForSlugIfEnabled(tenant.slug, tenant.license?.brandingEnabled ?? false);
   }
 }

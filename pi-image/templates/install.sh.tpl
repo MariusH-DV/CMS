@@ -105,7 +105,7 @@ echo "==> Systempakete aktualisieren und Abhaengigkeiten installieren"
 echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
 apt-get update -y
 apt-get install -y --no-install-recommends \
-  nodejs npm chromium-browser unclutter xdotool xserver-xorg xinit x11-xserver-utils curl \
+  nodejs npm chromium-browser unclutter xdotool xserver-xorg xinit x11-xserver-utils curl unzip \
   plymouth plymouth-themes feh
 
 # Falls ein Displaymanager (z.B. lightdm) aus einem "Desktop"-Basisimage
@@ -123,6 +123,16 @@ echo "==> Node-Abhaengigkeiten installieren"
 cd "${INSTALL_DIR}"
 npm install --omit=dev
 
+echo "==> Aktuelle Player-Version vermerken (fuer den Auto-Updater)"
+# Verhindert, dass der Auto-Updater direkt nach der Installation ein erneutes
+# (unnoetiges) Update des gerade frisch installierten Codes anstoesst.
+API_URL="$(node -e "console.log(require('${INSTALL_DIR}/config/player-config.json').apiBaseUrl)" 2>/dev/null || true)"
+if [ -n "${API_URL}" ]; then
+  curl -fsS --max-time 15 "${API_URL}/public/player/version" 2>/dev/null \
+    | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{process.stdout.write(JSON.parse(d).version||'')}catch(e){}})" \
+    > "${INSTALL_DIR}/.player-version" 2>/dev/null || true
+fi
+
 echo "==> systemd-Dienst fuer den Player-Hintergrunddienst einrichten (Autostart)"
 # Die Vorlage ist auf den Benutzer "pi" ausgelegt - hier auf den tatsaechlich
 # vorhandenen Benutzer umschreiben (User=, WorkingDirectory=, /home/pi/...).
@@ -134,6 +144,18 @@ sed -e "s/^User=pi$/User=${RUN_USER}/" \
     "${PROVISIONING_DIR}/cms-player.service" > /etc/systemd/system/cms-player.service
 systemctl daemon-reload
 systemctl enable cms-player.service
+
+echo "==> Auto-Update-Mechanismus fuer den Player-Quellcode einrichten"
+# Ausserhalb von INSTALL_DIR, da das Update-Skript genau dessen Inhalt
+# austauscht und sich nicht selbst waehrend der Ausfuehrung loeschen darf.
+UPDATER_DIR="/opt/cms-player-updater"
+mkdir -p "${UPDATER_DIR}"
+cp "${PROVISIONING_DIR}/player-update-check.sh" "${UPDATER_DIR}/player-update-check.sh"
+chmod +x "${UPDATER_DIR}/player-update-check.sh"
+cp "${PROVISIONING_DIR}/cms-player-updater.service" /etc/systemd/system/cms-player-updater.service
+cp "${PROVISIONING_DIR}/cms-player-updater.timer" /etc/systemd/system/cms-player-updater.timer
+systemctl daemon-reload
+systemctl enable --now cms-player-updater.timer
 
 echo "==> Konsolen-Autologin fuer Benutzer ${RUN_USER} aktivieren (kein Login-Fenster)"
 # B2 = "Console Autologin": Pi bootet auf die Textkonsole (tty1) und meldet

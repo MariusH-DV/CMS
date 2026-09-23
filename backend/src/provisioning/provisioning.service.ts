@@ -97,6 +97,16 @@ export class ProvisioningService {
     archive.append(renderTemplate('cms-kiosk.script.tpl', vars), {
       name: 'cms-provisioning/cms-kiosk.script',
     });
+    archive.append(renderTemplate('player-update-check.sh.tpl', vars), {
+      name: 'cms-provisioning/player-update-check.sh',
+      mode: 0o755,
+    });
+    archive.append(renderTemplate('cms-player-updater.service.tpl', vars), {
+      name: 'cms-provisioning/cms-player-updater.service',
+    });
+    archive.append(renderTemplate('cms-player-updater.timer.tpl', vars), {
+      name: 'cms-provisioning/cms-player-updater.timer',
+    });
     archive.file(path.join(TEMPLATES_DIR, 'logo.png'), {
       name: 'cms-provisioning/logo.png',
     });

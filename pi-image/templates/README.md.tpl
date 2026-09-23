@@ -72,6 +72,12 @@ mehr noetig.
   (Plymouth-Theme), ersetzt den Standard-Bootbildschirm
 - `xinitrc`, `bash_profile-append` - starten den Chromium-Kiosk automatisch
   nach dem Konsolen-Login (kein Displaymanager, kein Login-Fenster)
+- `player-update-check.sh`, `cms-player-updater.service`,
+  `cms-player-updater.timer` - Auto-Update: prueft alle 10 Minuten automatisch
+  auf eine neue Player-Version und installiert sie bei Bedarf selbststaendig
+  (Geraete-Registrierung, WLAN- und Branding-Einstellungen bleiben dabei
+  unangetastet) - kein manuelles Neu-Bereitstellen fuer zukuenftige
+  Player-Updates noetig
 
 ## Geraet zuruecksetzen / neu registrieren
 

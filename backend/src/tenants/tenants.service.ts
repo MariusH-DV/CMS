@@ -94,6 +94,7 @@ export class TenantsService {
         maxStorageMb: dto.maxStorageMb,
         validUntil: dto.validUntil ? new Date(dto.validUntil) : undefined,
         active: dto.active ?? true,
+        brandingEnabled: dto.brandingEnabled ?? false,
       },
       update: {
         maxMonitors: dto.maxMonitors,
@@ -101,6 +102,7 @@ export class TenantsService {
         maxStorageMb: dto.maxStorageMb,
         validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
         active: dto.active ?? true,
+        brandingEnabled: dto.brandingEnabled ?? false,
       },
     });
   }
