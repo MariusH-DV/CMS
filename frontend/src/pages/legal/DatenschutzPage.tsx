@@ -37,26 +37,33 @@ export default function DatenschutzPage() {
 
       <section>
         <h2 className="font-semibold text-slate-800 mb-1">2. Datenschutzbeauftragter</h2>
-        <Todo>
-          Ist eine verantwortliche Person mit mindestens 20 Personen ständig mit der automatisierten
-          Verarbeitung personenbezogener Daten beschäftigt, ist ein Datenschutzbeauftragter zu bestellen
-          (§ 38 BDSG). Falls das bei euch nicht zutrifft, kann dieser Abschnitt entfallen oder "Ein
-          Datenschutzbeauftragter ist nicht bestellt, da die gesetzlichen Voraussetzungen nicht vorliegen."
-          eingetragen werden.
-        </Todo>
+        <p>
+          Nach § 38 BDSG ist ein Datenschutzbeauftragter nur zu bestellen, wenn in der Regel mindestens 20
+          Personen ständig mit der automatisierten Verarbeitung personenbezogener Daten beschäftigt sind.
+          Diese Voraussetzung liegt bei uns nicht vor, weshalb kein Datenschutzbeauftragter bestellt ist.
+          Für Anliegen zum Datenschutz wenden Sie sich bitte direkt an den oben unter Ziffer 1 genannten
+          Verantwortlichen.
+        </p>
       </section>
 
       <section>
         <h2 className="font-semibold text-slate-800 mb-1">3. Hosting</h2>
+        <p>
+          Diese Anwendung wird auf einem bei der STRATO AG angemieteten Server betrieben. Der Server wird
+          vollständig eigenverantwortlich durch den unter Ziffer 1 genannten Verantwortlichen über die
+          Serververwaltungssoftware Plesk administriert - STRATO hat als reiner Infrastruktur-Anbieter
+          keinen Zugriff auf die inhaltlichen Daten dieser Anwendung. Der Serverstandort liegt innerhalb
+          der Europäischen Union, es findet keine Datenübermittlung in ein Drittland statt.
+        </p>
         <Todo>
-          Name und Anschrift des Hosting-Anbieters (Server, auf dem diese Anwendung läuft) sowie der
-          Serverstandort (wichtig für die Frage einer Datenübermittlung in ein Drittland außerhalb der
-          EU/des EWR).
+          Bitte die genaue Geschäftsanschrift der STRATO AG ergänzen (ich kenne sie nicht sicher genug,
+          um sie hier fehlerfrei einzutragen) - zu finden z.B. im eigenen STRATO-Kundenkonto oder auf
+          strato.de/impressum.
         </Todo>
         <p className="mt-2">
-          Beim Aufruf dieser Anwendung erhebt der Hosting-Anbieter automatisch sogenannte Server-Logfiles,
-          die Ihr Browser übermittelt. Dies sind: IP-Adresse, Datum und Uhrzeit der Anfrage, aufgerufene
-          Seite, übertragene Datenmenge, verwendeter Browser und Betriebssystem. Diese Daten dienen der
+          Beim Aufruf dieser Anwendung erhebt der Server automatisch sogenannte Server-Logfiles, die Ihr
+          Browser übermittelt. Dies sind: IP-Adresse, Datum und Uhrzeit der Anfrage, aufgerufene Seite,
+          übertragene Datenmenge, verwendeter Browser und Betriebssystem. Diese Daten dienen der
           technischen Bereitstellung und Absicherung des Betriebs und werden nicht mit anderen
           Datenquellen zusammengeführt.
         </p>
@@ -64,10 +71,16 @@ export default function DatenschutzPage() {
 
       <section>
         <h2 className="font-semibold text-slate-800 mb-1">4. Auftragsverarbeitung</h2>
+        <p>
+          Obwohl STRATO keinen inhaltlichen Zugriff auf die Anwendung hat, gilt STRATO als
+          Infrastruktur-Anbieter datenschutzrechtlich als Auftragsverarbeiter (Art. 28 DSGVO).
+        </p>
         <Todo>
-          Falls mit dem Hosting-Anbieter (oder anderen Dienstleistern, die Zugriff auf personenbezogene
-          Daten haben könnten) ein Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO besteht, sollte das
-          hier benannt werden.
+          Bitte prüfen, ob im STRATO-Kundenkonto bereits ein Auftragsverarbeitungsvertrag (AVV) mit STRATO
+          abgeschlossen/akzeptiert wurde (die meisten deutschen Hoster bieten diesen als Standard-Dokument
+          zum Akzeptieren im Kundenbereich an) - falls ja, hier kurz erwähnen ("Mit STRATO AG besteht ein
+          Vertrag zur Auftragsverarbeitung gemäß Art. 28 DSGVO."), falls noch nicht geschehen, sollte er
+          vor Veröffentlichung dieser Erklärung abgeschlossen werden.
         </Todo>
       </section>
 
@@ -96,7 +109,20 @@ export default function DatenschutzPage() {
       </section>
 
       <section>
-        <h2 className="font-semibold text-slate-800 mb-1">6. Speicherdauer</h2>
+        <h2 className="font-semibold text-slate-800 mb-1">6. Von Mandanten hochgeladene Medieninhalte</h2>
+        <p>
+          Mandanten (Kunden, die diese Software zur Digital-Signage-Verwaltung nutzen) können eigene
+          Bild- und Videoinhalte hochladen und auf ihren Anzeigegeräten wiedergeben. Enthalten diese vom
+          Mandanten bereitgestellten Inhalte personenbezogene Daten (z.B. Abbildungen von Personen), ist
+          für deren Erhebung und die Rechtmäßigkeit ihrer Verwendung ausschließlich der jeweilige Mandant
+          als datenschutzrechtlich Verantwortlicher im Sinne von Art. 4 Nr. 7 DSGVO zuständig. Wir stellen
+          als technischer Dienstleister lediglich die Speicher- und Wiedergabeinfrastruktur bereit und
+          nehmen keine inhaltliche Prüfung der hochgeladenen Medien vor.
+        </p>
+      </section>
+
+      <section>
+        <h2 className="font-semibold text-slate-800 mb-1">7. Speicherdauer</h2>
         <p>
           Personenbezogene Daten werden gespeichert, solange das jeweilige Benutzerkonto bzw. der
           jeweilige Mandant besteht. Nach Löschung eines Kontos oder Mandanten werden die zugehörigen
@@ -106,7 +132,7 @@ export default function DatenschutzPage() {
       </section>
 
       <section>
-        <h2 className="font-semibold text-slate-800 mb-1">7. Ihre Rechte</h2>
+        <h2 className="font-semibold text-slate-800 mb-1">8. Ihre Rechte</h2>
         <p>Sie haben jederzeit das Recht auf:</p>
         <ul className="list-disc list-inside">
           <li>Auskunft über die zu Ihrer Person gespeicherten Daten (Art. 15 DSGVO)</li>
@@ -122,7 +148,7 @@ export default function DatenschutzPage() {
       </section>
 
       <section>
-        <h2 className="font-semibold text-slate-800 mb-1">8. Beschwerderecht bei einer Aufsichtsbehörde</h2>
+        <h2 className="font-semibold text-slate-800 mb-1">9. Beschwerderecht bei einer Aufsichtsbehörde</h2>
         <p>
           Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde über die Verarbeitung Ihrer
           personenbezogenen Daten zu beschweren, insbesondere in dem Mitgliedstaat Ihres Aufenthaltsorts,
