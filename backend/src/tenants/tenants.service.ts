@@ -7,15 +7,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { MailService } from '../mail/mail.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpsertLicenseDto } from './dto/upsert-license.dto';
+
+// 7 Tage Vorlaufzeit fuer die Warn-Mail "Lizenz laeuft bald ab".
+const EXPIRY_WARNING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class TenantsService {
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
+    private mailService: MailService,
   ) {}
 
   async create(dto: CreateTenantDto) {
@@ -103,6 +108,10 @@ export class TenantsService {
         validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
         active: dto.active ?? true,
         brandingEnabled: dto.brandingEnabled ?? false,
+        // Zuruecksetzen, damit bei einer Verlaengerung spaeter erneut vor dem
+        // (neuen) Ablaufdatum gewarnt wird, statt wegen der alten Warnung
+        // dauerhaft stumm zu bleiben.
+        expiryWarningSentAt: null,
       },
     });
   }
@@ -167,5 +176,37 @@ export class TenantsService {
       data: { active: false, deactivationReason: 'Automatisches Vertragsende' },
     });
     return { deactivatedCount: expired.length };
+  }
+
+  /**
+   * Warnt per Mail, wenn bei einem aktiven Mandanten die Lizenz-Gueltigkeit
+   * ("Gueltig bis") in weniger als 7 Tagen ablaeuft - einmalig pro
+   * Ablaufdatum (siehe expiryWarningSentAt, wird bei einer Verlaengerung in
+   * upsertLicense() zurueckgesetzt).
+   */
+  async checkExpiringLicenses() {
+    const now = new Date();
+    const soon = new Date(now.getTime() + EXPIRY_WARNING_WINDOW_MS);
+    const expiringTenants = await this.prisma.tenant.findMany({
+      where: {
+        active: true,
+        license: { validUntil: { gte: now, lte: soon }, expiryWarningSentAt: null },
+      },
+      include: { license: true },
+    });
+    for (const tenant of expiringTenants) {
+      if (!tenant.license?.validUntil) continue;
+      // eslint-disable-next-line no-await-in-loop
+      await this.mailService.sendAlert(
+        `Lizenz laeuft bald ab: ${tenant.name}`,
+        `Die Lizenz des Mandanten "${tenant.name}" ist gueltig bis ${tenant.license.validUntil.toLocaleDateString('de-DE')} und laeuft in weniger als 7 Tagen ab. Bitte rechtzeitig verlaengern, sonst wird der Mandant automatisch deaktiviert.`,
+      );
+      // eslint-disable-next-line no-await-in-loop
+      await this.prisma.license.update({
+        where: { tenantId: tenant.id },
+        data: { expiryWarningSentAt: now },
+      });
+    }
+    return { warnedCount: expiringTenants.length };
   }
 }

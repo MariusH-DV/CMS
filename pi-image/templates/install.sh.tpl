@@ -145,6 +145,22 @@ sed -e "s/^User=pi$/User=${RUN_USER}/" \
 systemctl daemon-reload
 systemctl enable cms-player.service
 
+echo "==> Passwortlosen Shutdown-Befehl fuer ${RUN_USER} einrichten (fuer die Leihgeraete-Fernabschaltung im System-Admin Dashboard)"
+# Der Player-Dienst laeuft bewusst NICHT als root (s.o.) - fuer den Shutdown-
+# Befehl braucht der Dienst-Benutzer deshalb genau diese eine, eng gefasste
+# sudo-Berechtigung. "visudo -cf" prueft die Syntax der Datei VOR dem
+# Verschieben an ihren Zielort - eine kaputte sudoers-Datei wuerde sonst im
+# schlimmsten Fall jegliche sudo-Nutzung auf dem System blockieren.
+SUDOERS_TMP="$(mktemp)"
+echo "${RUN_USER} ALL=(root) NOPASSWD: /sbin/shutdown" > "${SUDOERS_TMP}"
+chmod 440 "${SUDOERS_TMP}"
+if visudo -cf "${SUDOERS_TMP}" >/dev/null 2>&1; then
+  mv "${SUDOERS_TMP}" /etc/sudoers.d/cms-player-shutdown
+else
+  echo "WARNUNG: sudoers-Regel ungueltig - Fern-Shutdown fuer Leihgeraete wird NICHT eingerichtet."
+  rm -f "${SUDOERS_TMP}"
+fi
+
 echo "==> Auto-Update-Mechanismus fuer den Player-Quellcode einrichten"
 # Ausserhalb von INSTALL_DIR, da das Update-Skript genau dessen Inhalt
 # austauscht und sich nicht selbst waehrend der Ausfuehrung loeschen darf.

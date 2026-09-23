@@ -65,8 +65,12 @@ export default function DevicesPage() {
 
   async function removeDevice(deviceId: string) {
     if (!confirm('Geraet wirklich entfernen? Es kann sich danach mit einer neuen PIN erneut registrieren.')) return;
-    await apiClient.delete(`/tenants/${tenantId}/devices/${deviceId}`);
-    load();
+    try {
+      await apiClient.delete(`/tenants/${tenantId}/devices/${deviceId}`);
+      load();
+    } catch (err) {
+      alert(apiErrorMessage(err));
+    }
   }
 
   return (
@@ -151,7 +155,21 @@ export default function DevicesPage() {
             )}
             {devices.map((d) => (
               <tr key={d.id}>
-                <td className="font-medium text-slate-800">{d.name}</td>
+                <td className="font-medium text-slate-800">
+                  <div className="flex items-center gap-2">
+                    {d.name}
+                    {d.isLoaner && (
+                      <span className="badge bg-violet-50 text-violet-700" title="Leihgeraet - kann nicht entfernt werden">
+                        <i className="fa-solid fa-handshake mr-1" /> Leihgeraet
+                      </span>
+                    )}
+                    {d.locked && (
+                      <span className="badge bg-red-50 text-red-700" title="Von uns gesperrt - Entsperrung nur vor Ort per PIN">
+                        <i className="fa-solid fa-lock mr-1" /> Gesperrt
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td>
                   <span className={`badge ${statusColors[d.status]}`}>{statusLabels[d.status]}</span>
                 </td>
@@ -173,9 +191,19 @@ export default function DevicesPage() {
                   </select>
                 </td>
                 <td className="text-right">
-                  <button className="btn-danger" onClick={() => removeDevice(d.id)}>
-                    <i className="fa-solid fa-trash" />
-                  </button>
+                  {d.isLoaner ? (
+                    <button
+                      className="btn-danger opacity-40 cursor-not-allowed"
+                      disabled
+                      title="Leihgeraete koennen nicht entfernt werden"
+                    >
+                      <i className="fa-solid fa-trash" />
+                    </button>
+                  ) : (
+                    <button className="btn-danger" onClick={() => removeDevice(d.id)}>
+                      <i className="fa-solid fa-trash" />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

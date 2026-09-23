@@ -61,6 +61,8 @@ export interface Device {
   playlistId: string | null;
   playlist?: Playlist | null;
   createdAt: string;
+  isLoaner?: boolean;
+  locked?: boolean;
 }
 
 export interface DeviceStatusInfo {
@@ -76,6 +78,39 @@ export interface DeviceStatusInfo {
   gpuAvailable: boolean;
   gpuTempC: number | null;
   playerVersion: string | null;
+  isLoaner: boolean;
+  locked: boolean;
+}
+
+export interface AdminDevice {
+  id: string;
+  name: string;
+  status: DeviceStatus;
+  lastSeenAt: string | null;
+  uptimeSeconds: number | null;
+  cpuLoadPercent: number | null;
+  memUsedPercent: number | null;
+  diskUsedPercent: number | null;
+  gpuAvailable: boolean;
+  gpuTempC: number | null;
+  gpuMemMb: number | null;
+  playerVersion: string | null;
+  isLoaner: boolean;
+  warningThresholdPercent: number | null;
+  locked: boolean;
+  tenant: { id: string; name: string } | null;
+}
+
+export interface MailSettings {
+  enabled: boolean;
+  host?: string | null;
+  port: number;
+  secure: boolean;
+  username?: string | null;
+  passwordSet: boolean;
+  fromAddress?: string | null;
+  fromName?: string | null;
+  alertRecipientEmail?: string | null;
 }
 
 export interface MediaAsset {

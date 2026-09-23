@@ -15,6 +15,7 @@ import { SchedulesModule } from './schedules/schedules.module';
 import { ProvisioningModule } from './provisioning/provisioning.module';
 import { BrandingModule } from './branding/branding.module';
 import { PlayerDistributionModule } from './player-distribution/player-distribution.module';
+import { MailModule } from './mail/mail.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 
@@ -34,6 +35,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     ProvisioningModule,
     BrandingModule,
     PlayerDistributionModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [

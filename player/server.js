@@ -94,6 +94,10 @@ const state = {
   // bei allen Medien fuehren.
   tenantId: config.tenantId,
   tenantName: config.tenantName,
+  // Vom System-Admin gesperrtes Leihgeraet - siehe sendHeartbeat(). Solange
+  // gesperrt, liefert der Server keine Playlist aus (source: 'locked') und
+  // der Kiosk zeigt statt der Inhalte einen Sperrbildschirm mit PIN-Eingabe.
+  locked: false,
 };
 
 const stored = loadStoredToken();
@@ -307,6 +311,17 @@ async function sendHeartbeat() {
       if (data.tenant && data.tenant.name) {
         state.tenantName = data.tenant.name;
       }
+      state.locked = Boolean(data.locked);
+      if (data.shutdownRequested) {
+        console.log('Herunterfahren vom System-Admin angefordert - fuehre Shutdown aus...');
+        try {
+          // "-n" (non-interactive): schlaegt sofort fehl statt auf ein Passwort
+          // zu warten, falls die sudoers-Regel (siehe install.sh.tpl) fehlt.
+          execSync('sudo -n /sbin/shutdown -h now', { timeout: 5000 });
+        } catch (shutdownErr) {
+          console.error('Shutdown fehlgeschlagen:', shutdownErr.message);
+        }
+      }
     }
   } catch (_err) {
     // Heartbeat-Fehler sind unkritisch, naechster Versuch folgt automatisch
@@ -335,9 +350,39 @@ if (state.mode === 'pairing') {
 }
 
 const app = express();
+app.use(express.json());
 app.use('/static', express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
+
+/**
+ * Vor-Ort-Entsperrung: nimmt die auf dem Kiosk-Bildschirm eingegebene PIN
+ * entgegen und reicht sie an das Backend weiter (dort liegt der Vergleichswert,
+ * nicht hier - der Player kann sich also nicht selbst entsperren).
+ */
+app.post('/unlock', async (req, res) => {
+  const pin = (req.body && typeof req.body.pin === 'string' ? req.body.pin : '').trim();
+  if (!state.apiToken) {
+    res.status(400).json({ success: false, error: 'Geraet ist nicht registriert' });
+    return;
+  }
+  try {
+    const backendRes = await apiFetch('/public/devices/unlock', {
+      method: 'POST',
+      headers: { 'x-device-token': state.apiToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin }),
+    });
+    const data = await backendRes.json().catch(() => ({}));
+    if (!backendRes.ok) {
+      res.status(backendRes.status).json({ success: false, error: data.message || 'Falsche PIN' });
+      return;
+    }
+    state.locked = false;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(502).json({ success: false, error: `Server nicht erreichbar: ${err.message}` });
+  }
+});
 
 // Eigenes Mandanten-Logo, falls per Branding-Lizenz hinterlegt - liefert 404,
 // wenn keines gecached ist, damit das Frontend per onerror auf das
@@ -364,6 +409,7 @@ app.get('/status', (_req, res) => {
     apiBaseUrl: config.apiBaseUrl,
     playlist: state.playlist,
     lastError: state.lastError,
+    locked: state.locked,
   });
 });
 
