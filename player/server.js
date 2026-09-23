@@ -83,6 +83,17 @@ const state = {
   apiToken: null,
   playlist: null,
   lastError: null,
+  // Startwert aus der beim Bereitstellen erzeugten player-config.json - wird
+  // durch den tatsaechlich per PIN zugeordneten Mandanten ueberschrieben,
+  // sobald der erste Heartbeat beantwortet wurde (siehe sendHeartbeat()).
+  // Diese beiden koennen abweichen, wenn das Bereitstellungspaket urspruenglich
+  // fuer einen anderen Mandanten erzeugt wurde als den, dem das Geraet dann
+  // tatsaechlich zugeordnet wurde. WICHTIG bei tenantId: wird auch von
+  // buildMediaUrl() im Frontend fuer die Playlist-Medien-URLs verwendet -
+  // ein veralteter Wert wuerde nach einer Neu-Zuordnung dauerhaft zu 404ern
+  // bei allen Medien fuehren.
+  tenantId: config.tenantId,
+  tenantName: config.tenantName,
 };
 
 const stored = loadStoredToken();
@@ -137,6 +148,7 @@ async function pollPairingStatus() {
       saveStoredToken({ hardwareId, deviceId: state.deviceId, apiToken: data.apiToken });
       await fetchPlaylist();
       await fetchLogo();
+      await sendHeartbeat();
     }
   } catch (err) {
     state.lastError = `Server nicht erreichbar: ${err.message}`;
@@ -282,11 +294,20 @@ function collectMetrics() {
 async function sendHeartbeat() {
   if (!state.apiToken) return;
   try {
-    await apiFetch('/public/devices/heartbeat', {
+    const res = await apiFetch('/public/devices/heartbeat', {
       method: 'POST',
       headers: { 'x-device-token': state.apiToken, 'Content-Type': 'application/json' },
       body: JSON.stringify(collectMetrics()),
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.tenantId) {
+        state.tenantId = data.tenantId;
+      }
+      if (data.tenant && data.tenant.name) {
+        state.tenantName = data.tenant.name;
+      }
+    }
   } catch (_err) {
     // Heartbeat-Fehler sind unkritisch, naechster Versuch folgt automatisch
   }
@@ -337,8 +358,8 @@ app.get('/status', (_req, res) => {
   res.json({
     mode: state.mode,
     pin: state.pin,
-    tenantId: config.tenantId,
-    tenantName: config.tenantName,
+    tenantId: state.tenantId,
+    tenantName: state.tenantName,
     deviceLabel: config.deviceLabel,
     apiBaseUrl: config.apiBaseUrl,
     playlist: state.playlist,

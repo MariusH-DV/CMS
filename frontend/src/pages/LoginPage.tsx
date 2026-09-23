@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiErrorMessage } from '../api/client';
 import logo from '../assets/logo.png';
@@ -31,7 +31,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="flex flex-col min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm card p-8 animate-pop-in">
         <div className="flex items-center gap-2 justify-center mb-6">
           <img src={logo} alt="Logo" className="h-10 w-10 rounded-lg object-cover" />
@@ -73,6 +73,14 @@ export default function LoginPage() {
             Anmelden
           </button>
         </form>
+      </div>
+      <div className="flex gap-4 mt-4 text-xs text-slate-400">
+        <Link to="/impressum" className="hover:text-slate-600">
+          Impressum
+        </Link>
+        <Link to="/datenschutz" className="hover:text-slate-600">
+          Datenschutzerklärung
+        </Link>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, useParams } from 'react-router-dom';
+import { Link, NavLink, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { PERMISSIONS } from '../api/types';
 import { apiClient } from '../api/client';
@@ -21,10 +21,17 @@ export default function Sidebar() {
   const currentMembership = user?.memberships.find((m) => m.tenantId === tenantId);
   const tenantActive = currentMembership?.tenant?.active ?? true;
   const [customLogoFailed, setCustomLogoFailed] = useState(false);
+  // Cache-Buster: aendert sich bei jedem Mandantenwechsel/Neuladen, damit nie
+  // eine (evtl. von einem Zwischen-Proxy) gecachte Antwort einer frueheren
+  // Anfrage - egal ob vom selben oder einem anderen Mandanten - wiederverwendet
+  // werden kann. Eine neue URL kann nie aus einem Cache fuer eine andere
+  // URL bedient werden.
+  const [logoCacheKey, setLogoCacheKey] = useState(() => Date.now());
   const useCustomLogo = Boolean(tenantId) && !customLogoFailed;
 
   useEffect(() => {
     setCustomLogoFailed(false);
+    setLogoCacheKey(Date.now());
   }, [tenantId]);
 
   useEffect(() => {
@@ -38,7 +45,7 @@ export default function Sidebar() {
     <aside className="w-64 shrink-0 border-r border-white/60 bg-white/50 backdrop-blur-xl p-4 flex flex-col gap-6">
       <div className="flex items-center gap-2 px-2 py-1">
         <img
-          src={useCustomLogo ? `/api/tenants/${tenantId}/branding/logo` : logo}
+          src={useCustomLogo ? `/api/tenants/${tenantId}/branding/logo?t=${logoCacheKey}` : logo}
           alt="Logo"
           className="h-8 w-8 rounded-md object-cover"
           onError={() => setCustomLogoFailed(true)}
@@ -121,8 +128,16 @@ export default function Sidebar() {
         </div>
       )}
 
-      <div className="mt-auto px-2 pt-3 border-t border-white/50 text-center text-xs text-slate-400">
-        Version {version ?? '...'}
+      <div className="mt-auto px-2 pt-3 border-t border-white/50 text-center text-xs text-slate-400 flex flex-col gap-1">
+        <div>Version {version ?? '...'}</div>
+        <div className="flex justify-center gap-3">
+          <Link to="/impressum" className="hover:text-slate-600">
+            Impressum
+          </Link>
+          <Link to="/datenschutz" className="hover:text-slate-600">
+            Datenschutz
+          </Link>
+        </div>
       </div>
     </aside>
   );

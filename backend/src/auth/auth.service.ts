@@ -14,7 +14,7 @@ export class AuthService {
   async validateUser(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
-      include: { memberships: true },
+      include: { memberships: { include: { tenant: true } } },
     });
     if (!user || !user.active) {
       throw new UnauthorizedException('E-Mail oder Passwort ist falsch');
@@ -48,7 +48,16 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         isSystemAdmin: user.isSystemAdmin,
-        memberships: payload.memberships,
+        // Im Gegensatz zum schlanken JWT-Payload hier inkl. Mandanten-Objekt
+        // (Name etc.) - direkt nach dem Login braucht die Oberflaeche (z.B.
+        // "Meine Mandanten" in der Sidebar) das sofort, ohne auf den
+        // naechsten Seiten-Reload (der /auth/me neu laedt) warten zu muessen.
+        memberships: user.memberships.map((m) => ({
+          tenantId: m.tenantId,
+          role: m.role,
+          permissions: m.permissions,
+          tenant: m.tenant,
+        })),
       },
     };
   }
